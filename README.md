@@ -2,39 +2,50 @@
 
 Hello, I'm [Joseph Konka](https://www.linkedin.com/in/joseph-koami-konka/), Python enthousiast. Python provide packages to interact with databases, I've worked on a simple way to run SQL based-ETL using Python, I called it **SQL ETL Runner**, connect to db and run queries !
 
-## Install dependencies
+## Install DB Analytics Tools
 ```sh
-pip install -r requirements.txt
+pip install db_analytics_tools
 ```
 
 ## Get Started
+
+### Import DB Analytics Tools
 ```python
-import getpass
-from utils import JobRunner
+import db_analytics_tools.analytics as db
+```
 
-# Database config
-HOST = '###'
-PORT = '###'
-DATABASE = '###'
-USER = '###'
+### Database config
+```python
+HOST = "127.0.0.1"
+PORT = 5432
+DATABASE = "datawarehouse"
+USER = "admin"
+PASSWORD = "admin"
+```
 
-PASSWORD = getpass.getpass('Enter your password: ')
+### Database config
+```python
+runner = db.JobRunner(
+    host=HOST, 
+    port=PORT, 
+    database=DATABASE, 
+    username=USER, 
+    password=PASSWORD
+)
+```
 
-# Database Connection
-runner = JobRunner(host=HOST, port=PORT, database=DATABASE, username=USER, password=PASSWORD)
-
-## Reporting Function
-FUNCTION = '####'
+### Define Function & Dates
+```python
+FUNCTION = "fn_daily_sales"
 
 ## Dates to run
-START = '2020-01-01'
-STOP = '2020-01-31'
+START = "2020-01-01"
+STOP = "2020-01-31"
+```
 
-#  Run queries
+### Run queries
+```python
 runner.run(function=FUNCTION, start_date=START, stop_date=STOP)
-
-# Close connection
-runner.close()
 ```
 
 ## Let's get in touch
