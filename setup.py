@@ -7,7 +7,7 @@ with open("README.md", "r") as f:
 # print(find_packages())
 setup(
     name='db_analytics_tools',
-    version='0.1.1',
+    version='0.1.2',
     # packages=['db_analytics_tools'],
     url='http://josephkonka.com/',
     download_url="https://github.com/joekakone/db-analytics-tools",
