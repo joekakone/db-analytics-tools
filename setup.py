@@ -16,7 +16,7 @@ setup(
     author_email='contact@josephkonka.com',
     description='Databases Tools for Data Analytics',
     keywords='databases analytics etl sql orc',
-    long_description=long_description,
+    # long_description=long_description,
     install_requires=[
         'psycopg2-binary',
         'pandas',
