@@ -5,49 +5,55 @@
 '''
 
 
-import urllib
+# import urllib
 import datetime
 
-import psycopg2
+# import psycopg2
 import pandas as pd
 
+from .utils import Client
 
-class JobRunner:
+
+class JobRunner(Client):
     """SQL Based ETL Runner"""
     def __init__(self, host, port, database, username, password, engine="postgres"):
-        self.host = host
-        self.port = port
-        self.database = database
-        self.username = username
-        self.password = password
-        self.engine = engine
-        # self.connect()
+        super().__init__(host, port, database, username, password, engine=engine)
+        # self.host = host
+        # self.port = port
+        # self.database = database
+        # self.username = username
+        # self.password = password
+        # self.engine = engine
+        # # self.connect()
 
-    def connect(self, verbose=0):
-        """Connection to database"""
-        if self.engine == "postgres":
-            self.conn = psycopg2.connect(host=self.host,
-                                         port=self.port,
-                                         database=self.database,
-                                         user=self.username,
-                                         password=self.password)
-            self.cursor = self.conn.cursor()
-        else:
-            raise NotImplementedError("Engine not supported")
-        if verbose == 1:
-            print('Connection etablished successfully !')
-
-    def close(self, verbose=0):
-        # Close connection
-        self.cursor.close()
-        self.conn.close()
-        if verbose == 1:
-            print('Connection closed successfully !')
-
-    def generate_uri(self):
-        """Genrate URI"""
-        password = urllib.parse.quote(self.password)
-        self.uri = f"postgresql+psycopg2://{self.username}:{password}@{self.host}:{self.port}/{self.database}"
+    # def connect(self, verbose=0):
+    #     """Connection to database"""
+    #     if self.engine == "postgres":
+    #         self.conn = psycopg2.connect(host=self.host,
+    #                                      port=self.port,
+    #                                      database=self.database,
+    #                                      user=self.username,
+    #                                      password=self.password)
+    #         self.cursor = self.conn.cursor()
+    #     else:
+    #         raise NotImplementedError("Engine not supported")
+    #     if verbose == 1:
+    #         print('Connection etablished successfully !')
+    #
+    # def close(self, verbose=0):
+    #     # Close connection
+    #     self.cursor.close()
+    #     self.conn.close()
+    #     if verbose == 1:
+    #         print('Connection closed successfully !')
+    #
+    # def generate_uri(self):
+    #     """Genrate URI"""
+    #     password = urllib.parse.quote(self.password)
+    #     if self.engine == "postgres":
+    #         self.uri = f"postgresql+psycopg2://{self.username}:{password}@{self.host}:{self.port}/{self.database}"
+    #     else:
+    #         raise NotImplementedError("Engine not supported")
 
     def execute(self, query):
         duration = datetime.datetime.now()
