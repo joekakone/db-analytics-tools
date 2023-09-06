@@ -2,18 +2,10 @@
 
 from setuptools import setup, find_packages
 
-# with open("README.md", "r") as f:
-#     long_description = f.read()
-#
-# print(find_packages())
-#
-# exit()
-
 setup(
     name="db_analytics_tools",
-    version="0.1.3",
-    # packages=["db_analytics_tools"],
-    url="http://josephkonka.com/",
+    version="0.1.4",
+    url="https://github.com/joekakone/db-analytics-tools",
     download_url="https://github.com/joekakone/db-analytics-tools",
     license="MIT",
     author="Joseph Konka",
@@ -24,7 +16,9 @@ setup(
     # long_description=long_description,
     install_requires=[
         "psycopg2-binary",
+        "pyodbc",
         "pandas",
+        "SQLAlchemy"
     ],
     python_requires=">=3.6",
     packages=find_packages()

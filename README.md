@@ -1,11 +1,13 @@
 # DB Analytics Tools
 DB Analytics Tools is a micro-framework that helps data analysts to work with data warehouses. Python enthousiast. Python provide packages to interact with databases, I've worked on a simple way to run SQL based-ETL using Python, I called it **SQL ETL Runner**, connect to db and run queries !
 
+<!--
 ## Why adopt DB Analytics Tools ?
 - o work. All plotting functions use a consistent tidy input data format.
-- Smart default styles: Create pretty charts with very little customization required.
+- Friendly: Create pretty charts with very little customization required.
 - Simple API: We've attempted to make the API as intuitive and easy to learn as possible.
 - Flexibility: Chartify is built on top of Bokeh, so if you do need more control you can always fall back on Bokeh's API.
+-->
 
 ## Install DB Analytics Tools
 ```sh
@@ -16,41 +18,38 @@ pip install db-analytics-tools
 
 ### Import DB Analytics Tools
 ```python
-import db_analytics_tools.analytics as dba
+import db_analytics_tools.integration as dbi
 ```
 
 ### Database config
 ```python
-HOST = "127.0.0.1"
-PORT = 5432
-DATABASE = "datawarehouse"
-USER = "admin"
+HOST = "localhost"
+PORT = "5432"
+DATABASE = "postgres"
+USER = "postgres"
 PASSWORD = "admin"
+ENGINE = "postgres"
 ```
 
-### Database config
+### Setup ETL
 ```python
-runner = dba.JobRunner(
-    host=HOST, 
-    port=PORT, 
-    database=DATABASE, 
-    username=USER, 
-    password=PASSWORD
-)
+etl = dbi.ETL(host=HOST, port=PORT, database=DATABASE, username=USER, password=PASSWORD, engine=ENGINE)
 ```
 
-### Define Function & Dates
+### Define ETL Function
 ```python
-FUNCTION = "fn_daily_sales"
+FUNCTION = "public.fn_test"
+```
 
-## Dates to run
+### Dates to run
+```python
 START = "2020-01-01"
 STOP = "2020-01-31"
 ```
 
-### Run queries
+### Run ETL
 ```python
-runner.run(function=FUNCTION, start_date=START, stop_date=STOP)
+etl.run(function=FUNCTION, start_date=START, stop_date=STOP, freq="d", reverse=False)
 ```
 
 ## Docs
