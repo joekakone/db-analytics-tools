@@ -17,12 +17,12 @@ setup(
     long_description="Databases Tools for Data Analytics",
     # long_description=long_description,
     install_requires=[
-        "psycopg2-binary",
-        "pyodbc",
-        "pandas",
-        "SQLAlchemy",
-        # "streamlit"
+        "psycopg2-binary==2.9.7",
+        "pyodbc==4.0.39",
+        "pandas==2.0.3",
+        "SQLAlchemy==2.0.20",
+        "streamlit==1.26.0"
     ],
-    python_requires=">=3.6",
+    python_requires=">=3.10",
     packages=find_packages()
 )
