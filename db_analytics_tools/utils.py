@@ -29,7 +29,7 @@ class Client:
         elif self.engine == "sqlserver":
             import pyodbc
             self.conn = pyodbc.connect("Driver={SQL Server};"
-                                       f"Server={self.host};"
+                                       f"Server={self.host},{self.port};"
                                        f"Database={self.database};"
                                        f"UID={self.username};"
                                        f"PWD={self.password};"
