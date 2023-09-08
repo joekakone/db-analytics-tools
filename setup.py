@@ -23,6 +23,6 @@ setup(
         "SQLAlchemy==2.0.20",
         "streamlit==1.26.0"
     ],
-    python_requires=">=3.10",
+    python_requires=">=3.10.9",
     packages=find_packages()
 )
