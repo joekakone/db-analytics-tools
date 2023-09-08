@@ -4,7 +4,7 @@ from setuptools import setup, find_packages
 
 setup(
     name="db_analytics_tools",
-    version="0.1.4.1",
+    version="0.1.4.2",
     url="https://github.com/joekakone/db-analytics-tools",
     download_url="https://github.com/joekakone/db-analytics-tools",
     license="MIT",
