@@ -2,9 +2,11 @@
 
 from setuptools import setup, find_packages
 
+from db_analytics_tools import __version__
+
 setup(
     name="db_analytics_tools",
-    version="0.1.4",
+    version=__version__,
     url="https://github.com/joekakone/db-analytics-tools",
     download_url="https://github.com/joekakone/db-analytics-tools",
     license="MIT",
@@ -18,7 +20,8 @@ setup(
         "psycopg2-binary",
         "pyodbc",
         "pandas",
-        "SQLAlchemy"
+        "SQLAlchemy",
+        "streamlit"
     ],
     python_requires=">=3.6",
     packages=find_packages()

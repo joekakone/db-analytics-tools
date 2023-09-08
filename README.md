@@ -9,6 +9,17 @@ DB Analytics Tools is a micro-framework that helps data analysts to work with da
 - Flexibility: Chartify is built on top of Bokeh, so if you do need more control you can always fall back on Bokeh's API.
 -->
 
+## Components
+
+| # | Component | Description | How to import | Alias |
+-- | -- | -- | -- | -- 
+0 | DB Analytics Tools | | import db_analytics_tools as db | db
+1 | Data Integration |  | import db_analytics_tools.integration as dbi | dbi
+2 | Data Analytics |  | import db_analytics_tools.analytics as dba | dba
+3 | Data Visualization |  | import db_analytics_tools.plotting as dbviz | dbviz
+4 | Machine Learning |  | import db_analytics_tools.learning as dbml | dbml
+
+
 ## Install DB Analytics Tools
 ```sh
 pip install db-analytics-tools

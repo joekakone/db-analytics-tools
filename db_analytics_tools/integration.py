@@ -98,7 +98,7 @@ class ETL(Client):
 
         return dates_ranges
 
-    def run(self, function, start_date, stop_date, freq='d', reverse=False):
+    def run(self, function, start_date, stop_date, freq='d', reverse=False, streamlit=False):
         print(f'Function    : {function}')
 
         # Generate Dates Range
@@ -107,23 +107,28 @@ class ETL(Client):
         # Send query to server
         for date in dates_ranges:
             print(f"[Runing Date: {date}] [Function: {function}] ", end="", flush=True)
+            if streamlit:
+                import streamlit as st
+                st.markdown(f"<span style='font-weight: bold;'>[Runing Date: {date}] [Function: {function}] </span>",
+                            unsafe_allow_html=True)
 
             query = f"select {function}('{date}'::date);"
             duration = datetime.datetime.now()
 
             try:
-                self.connect()
-                self.cursor.execute(query)
-                self.conn.commit()
+                self.execute(query)
             except Exception as e:
                 raise Exception("Something went wrong !")
             finally:
                 self.close()
 
             duration = datetime.datetime.now() - duration
-            print(f'Execution time: {duration}')
+            print(f"Execution time: {duration}")
+            if streamlit:
+                st.markdown(f"<span style='font-weight: bold;'>Execution time: {duration}</span>",
+                            unsafe_allow_html=True)
 
-    def run_multiple(self, functions, start_date, stop_date, freq='d', reverse=False):
+    def run_multiple(self, functions, start_date, stop_date, freq='d', reverse=False, streamlit=False):
         print(f'Functions   : {functions}')
 
         # Compute MAX Length of functions (Adjust display)
@@ -136,18 +141,24 @@ class ETL(Client):
         for date in dates_ranges:
             for function in functions:
                 print(f"[Runing Date: {date}] [Function: {function.ljust(max_fun, '.')}] ", end="", flush=True)
+                if streamlit:
+                    import streamlit as st
+                    st.markdown(
+                        f"<span style='font-weight: bold;'>[Runing Date: {date}] [Function: {function}] </span>",
+                        unsafe_allow_html=True)
 
                 query = f"select {function}('{date}'::date);"
                 duration = datetime.datetime.now()
 
                 try:
-                    self.connect()
-                    self.cursor.execute(query)
-                    self.conn.commit()
+                    self.execute(query)
                 except Exception as e:
                     raise Exception("Something went wrong !")
                 finally:
                     self.close()
 
                 duration = datetime.datetime.now() - duration
-                print(f'Execution time: {duration}')
+                print(f"Execution time: {duration}")
+                if streamlit:
+                    st.markdown(f"<span style='font-weight: bold;'>Execution time: {duration}</span>",
+                                unsafe_allow_html=True)
