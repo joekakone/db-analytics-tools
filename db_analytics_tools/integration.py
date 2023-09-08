@@ -107,10 +107,10 @@ class ETL(Client):
         # Send query to server
         for date in dates_ranges:
             print(f"[Runing Date: {date}] [Function: {function}] ", end="", flush=True)
-            if streamlit:
-                import streamlit as st
-                st.markdown(f"<span style='font-weight: bold;'>[Runing Date: {date}] [Function: {function}] </span>",
-                            unsafe_allow_html=True)
+            # if streamlit:
+            #     import streamlit as st
+            #     st.markdown(f"<span style='font-weight: bold;'>[Runing Date: {date}] [Function: {function}] </span>",
+            #                 unsafe_allow_html=True)
 
             query = f"select {function}('{date}'::date);"
             duration = datetime.datetime.now()
@@ -124,9 +124,9 @@ class ETL(Client):
 
             duration = datetime.datetime.now() - duration
             print(f"Execution time: {duration}")
-            if streamlit:
-                st.markdown(f"<span style='font-weight: bold;'>Execution time: {duration}</span>",
-                            unsafe_allow_html=True)
+            # if streamlit:
+            #     st.markdown(f"<span style='font-weight: bold;'>Execution time: {duration}</span>",
+            #                 unsafe_allow_html=True)
 
     def run_multiple(self, functions, start_date, stop_date, freq='d', reverse=False, streamlit=False):
         print(f'Functions   : {functions}')
@@ -141,11 +141,11 @@ class ETL(Client):
         for date in dates_ranges:
             for function in functions:
                 print(f"[Runing Date: {date}] [Function: {function.ljust(max_fun, '.')}] ", end="", flush=True)
-                if streamlit:
-                    import streamlit as st
-                    st.markdown(
-                        f"<span style='font-weight: bold;'>[Runing Date: {date}] [Function: {function}] </span>",
-                        unsafe_allow_html=True)
+                # if streamlit:
+                #     import streamlit as st
+                #     st.markdown(
+                #         f"<span style='font-weight: bold;'>[Runing Date: {date}] [Function: {function}] </span>",
+                #         unsafe_allow_html=True)
 
                 query = f"select {function}('{date}'::date);"
                 duration = datetime.datetime.now()
@@ -159,6 +159,6 @@ class ETL(Client):
 
                 duration = datetime.datetime.now() - duration
                 print(f"Execution time: {duration}")
-                if streamlit:
-                    st.markdown(f"<span style='font-weight: bold;'>Execution time: {duration}</span>",
-                                unsafe_allow_html=True)
+                # if streamlit:
+                #     st.markdown(f"<span style='font-weight: bold;'>Execution time: {duration}</span>",
+                #                 unsafe_allow_html=True)

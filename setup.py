@@ -21,7 +21,7 @@ setup(
         "pyodbc",
         "pandas",
         "SQLAlchemy",
-        "streamlit"
+        # "streamlit"
     ],
     python_requires=">=3.6",
     packages=find_packages()
