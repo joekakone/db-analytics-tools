@@ -2,14 +2,13 @@
 
 from setuptools import setup, find_packages
 
-import db_analytics_tools as db
 
 with open("README.md", "r") as f:
     long_description = f.read()
 
 setup(
     name="db_analytics_tools",
-    version=db.__version__,
+    version="0.1.4.3",
     url="https://github.com/joekakone/db-analytics-tools",
     download_url="https://github.com/joekakone/db-analytics-tools",
     license="MIT",
