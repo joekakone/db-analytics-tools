@@ -1,35 +1,9 @@
 # coding : utf-8
 
 """
->>> ## Import DB Analytics Tools
->>> import db_analytics_tools.integration as dbi
->>>
->>> # Database config
->>> HOST = "localhost"
->>> PORT = "5432"
->>> DATABASE = "postgres"
->>> USER = "postgres"
->>> PASSWORD = "admin"
->>> ENGINE = "postgres"
->>>
->>> ## Setup ETL
->>> etl = dbi.ETL(host=HOST, port=PORT, database=DATABASE, username=USER, password=PASSWORD, engine=ENGINE)
->>>
->>> ## ETL Functions
->>> FUNCTIONS = [
-...     "public.fn_test",
-...     "public.fn_test_long",
-...     "public.fn_test_very_long"
-... ]
->>>
->>> ## Dates to run
->>> START = '2023-08-01'
->>> STOP = '2023-08-05'
->>>
->>> # Run ETLs
->>> etl.run_multiple(functions=FUNCTIONS, start_date=START, stop_date=STOP, freq='d', reverse=False)
->>>
+    DB Analytics Tools Data Integration
 """
+
 
 import datetime
 
@@ -39,37 +13,7 @@ from db_analytics_tools import Client
 
 
 class ETL(Client):
-    """SQL Based ETL
-
-    >>> ## Import DB Analytics Tools
-    >>> import db_analytics_tools.integration as dbi
-    >>>
-    >>> # Database config
-    >>> HOST = "localhost"
-    >>> PORT = "5432"
-    >>> DATABASE = "postgres"
-    >>> USER = "postgres"
-    >>> PASSWORD = "admin"
-    >>> ENGINE = "postgres"
-    >>>
-    >>> ## Setup ETL
-    >>> etl = dbi.ETL(host=HOST, port=PORT, database=DATABASE, username=USER, password=PASSWORD, engine=ENGINE)
-    >>>
-    >>> ## ETL Functions
-    >>> FUNCTIONS = [
-    ...     "public.fn_test",
-    ...     "public.fn_test_long",
-    ...     "public.fn_test_very_long"
-    ... ]
-    >>>
-    >>> ## Dates to run
-    >>> START = '2023-08-01'
-    >>> STOP = '2023-08-05'
-    >>>
-    >>> # Run ETLs
-    >>> etl.run_multiple(functions=FUNCTIONS, start_date=START, stop_date=STOP, freq='d', reverse=False)
-    >>>
-    """
+    """SQL Based ETL"""
 
     def __init__(self, host, port, database, username, password, engine="postgres"):
         super().__init__(host, port, database, username, password, engine=engine)

@@ -2,27 +2,33 @@
 
 from setuptools import setup, find_packages
 
-from db_analytics_tools import __version__
+with open("README.md", "r") as f:
+    long_description = f.read()
 
 setup(
     name="db_analytics_tools",
-    version=__version__,
-    url="https://github.com/joekakone/db-analytics-tools",
+    version="0.1.4.4",
+    url="https://josephkonka.com/#projects",
     download_url="https://github.com/joekakone/db-analytics-tools",
+    project_urls={
+        "Bug Tracker": "https://github.com/joekakone/db-analytics-tools/issues",
+        "Documentation": "https://joekakone.github.io/db-analytics-tools-docs",
+        "Source Code": "https://github.com/joekakone/db-analytics-tools",
+    },
     license="MIT",
     author="Joseph Konka",
     author_email="contact@josephkonka.com",
     description="Databases Tools for Data Analytics",
     keywords="databases analytics etl sql orc",
-    long_description="Databases Tools for Data Analytics",
-    # long_description=long_description,
+    long_description=long_description,
+    long_description_content_type="text/markdown",
     install_requires=[
-        "psycopg2-binary==2.9.7",
-        "pyodbc==4.0.39",
-        "pandas==2.0.3",
-        "SQLAlchemy==2.0.20",
-        "streamlit==1.26.0"
+        "psycopg2-binary",
+        "pyodbc",
+        "pandas",
+        "SQLAlchemy",
+        "streamlit"
     ],
-    python_requires=">=3.10",
+    python_requires=">=3.6",
     packages=find_packages()
 )
