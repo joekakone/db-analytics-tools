@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="screenshot.png"><br>
+  <img src="cover.png"><br>
 </div>
 
 # DB Analytics Tools
@@ -9,7 +9,7 @@ Databases Analytics Tools is a Python open source micro framework for data analy
 ## Why adopt DB Analytics Tools ?
 - Easy to learn : It is high level API and doesn't require any special effort to learn.
 - Real problems solver : It is designed to solve real life problems of the Data Analyst
-- All in One : Support queries as traditional clients, Data Integration, Data Anlysis, Data Visualization and Machine Learning
+- All in One : Support queries, Data Integration, Analysis, Visualization and Machine Learning
 
 
 ## Core Components
