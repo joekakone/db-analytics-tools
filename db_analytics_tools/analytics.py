@@ -3,5 +3,3 @@
 """
     DB Analytics Tools Data Analysis
 """
-
-

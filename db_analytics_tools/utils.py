@@ -16,6 +16,8 @@ class Client:
         self.username = username
         self.password = password
         self.engine = engine
+        ### Test Connection ###
+        self.test_connection()
 
     def connect(self, verbose=0):
         """Connection to database"""
@@ -40,6 +42,13 @@ class Client:
         self.cursor = self.conn.cursor()
         if verbose == 1:
             print('Connection established successfully !')
+
+    def test_connection(self):
+        try:
+            self.connect()
+            self.close()
+        except Exception:
+            raise Exception("Something went wrong ! Verify database infos and credentials")
 
     def close(self, verbose=0):
         """Close connection"""
