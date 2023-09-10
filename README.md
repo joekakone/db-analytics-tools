@@ -1,9 +1,9 @@
 <div align="center">
-  <img src="cover.png"><br>
+  <img src="https://raw.githubusercontent.com/joekakone/db-analytics-tools/master/cover.png"><br>
 </div>
 
 # DB Analytics Tools
-Databases Analytics Tools is a Python open source micro framework for data analytics. DB Analytics Tools is built on top of Psycopg2, Pyodbc, Pandas, SQLAlchemy. It helps data analysts to interact with data warehouses as traditional databases clients.
+Databases Analytics Tools is a Python open source micro framework for data analytics. DB Analytics Tools is built on top of Psycopg2, Pyodbc, Pandas, Matplotlib and Scikit-learn. It helps data analysts to interact with data warehouses as traditional databases clients.
 
 
 ## Why adopt DB Analytics Tools ?
@@ -29,6 +29,7 @@ DB Analytics Tools requires
 * Psycopg2
 * Pyodbc
 * Pandas
+* SQLAlchemy
 * Streamlit
 
 DB Analytics Tools can easily installed using pip
@@ -219,7 +220,7 @@ If you need help on DB Analytics Tools, please send me an message on [Whatsapp](
 
 
 ## Contributing
-[Please see the contributing docs.](CONTRIBUTING.md).
+[Please see the contributing docs.](CONTRIBUTING.md)
 
 
 ## Maintainer
