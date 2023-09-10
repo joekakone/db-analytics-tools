@@ -220,7 +220,7 @@ If you need help on DB Analytics Tools, please send me an message on [Whatsapp](
 
 
 ## Contributing
-[Please see the contributing docs.](CONTRIBUTING.md).
+[Please see the contributing docs.](CONTRIBUTING.md)
 
 
 ## Maintainer
