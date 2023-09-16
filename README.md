@@ -13,13 +13,13 @@ Databases Analytics Tools is a Python open source micro framework for data analy
 
 
 ## Core Components
-| # | Component | Description | How to import |
--- | -- | -- | --
-0 | db | Database Interactions (Client) | `import db_analytics_tools as db`
-1 | dbi | Data Integration & Data Engineering | `import db_analytics_tools.integration as dbi`
-2 | dba | Data Analysis | `import db_analytics_tools.analytics as dba`
-3 | dbviz | Data Visualization | `import db_analytics_tools.plotting as dbviz`
-4 | dbml | Machine Learning & MLOps | `import db_analytics_tools.learning as dbml`
+| #   | Component                         | Description                  | How to import                     |
+| --- | --------------------------------- | ---------------------------- | --------------------------------- |
+| 0   | db                                | Database Interactions (Client)| `import db_analytics_tools as db` |
+| 1   | dbi                               | Data Integration & Data Engineering | `import db_analytics_tools.integration as dbi` |
+| 2   | dba                               | Data Analysis                 | `import db_analytics_tools.analytics as dba` |
+| 3   | dbviz                             | Data Visualization            | `import db_analytics_tools.plotting as dbviz` |
+| 4   | dbml                              | Machine Learning & MLOps      | `import db_analytics_tools.learning as dbml` |
 
 
 ## Install DB Analytics Tools
@@ -222,7 +222,7 @@ Iterations  : 5
 ```
 
 ## Documentation
-Documentation available on [https://joekakone.github.io/db-analytics-tools-docs](https://joekakone.github.io/db-analytics-tools-docs).
+Documentation available on [https://joekakone.github.io/db-analytics-tools](https://joekakone.github.io/db-analytics-tools).
 
 
 ## Help and Support
