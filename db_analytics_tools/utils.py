@@ -18,6 +18,8 @@ class Client:
         self.engine = engine
         ### Test Connection ###
         self.test_connection()
+        ### Generate URI ###
+        self.generate_uri()
 
     def connect(self, verbose=0):
         """Connection to database"""
@@ -79,7 +81,6 @@ class Client:
             print(f'Execution time: {duration}')
 
     def read_sql(self, query, verbose=0):
-        self.generate_uri()
         duration = datetime.datetime.now()
         dataframe = pd.read_sql(query, self.uri)
         duration = datetime.datetime.now() - duration
