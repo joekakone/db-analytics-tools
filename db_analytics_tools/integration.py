@@ -12,13 +12,18 @@ import pandas as pd
 from db_analytics_tools import Client
 
 
-class ETL(Client):
+class ETL:
     """SQL Based ETL"""
 
-    def __init__(self, host, port, database, username, password, engine="postgres"):
-        super().__init__(host, port, database, username, password, engine=engine)
+    def __init__(self, client):
+        try:
+            assert isinstance(client, Client)
+        except Exception:
+            raise Exception("Something went wrong !")
+        self.client = client
 
-    def generate_date_range(self, start_date, stop_date, freq='d', reverse=False):
+    @staticmethod
+    def generate_date_range(start_date, stop_date, freq='d', reverse=False):
         """Generate Dates Range"""
         dates_ranges = list(pd.date_range(start=start_date, end=stop_date, freq='d'))
 
@@ -60,11 +65,11 @@ class ETL(Client):
             duration = datetime.datetime.now()
 
             try:
-                self.execute(query)
+                self.client.execute(query)
             except Exception as e:
                 raise Exception("Something went wrong !")
             finally:
-                self.close()
+                self.client.close()
 
             duration = datetime.datetime.now() - duration
             print(f"Execution time: {duration}")
@@ -83,6 +88,8 @@ class ETL(Client):
 
         # Send query to server
         for date in dates_ranges:
+            ## Show date separator line
+            print("*"*(69+max_fun))
             for function in functions:
                 print(f"[Runing Date: {date}] [Function: {function.ljust(max_fun, '.')}] ", end="", flush=True)
                 if streamlit:
@@ -95,14 +102,17 @@ class ETL(Client):
                 duration = datetime.datetime.now()
 
                 try:
-                    self.execute(query)
+                    self.client.execute(query)
                 except Exception as e:
                     raise Exception("Something went wrong !")
                 finally:
-                    self.close()
+                    self.client.close()
 
                 duration = datetime.datetime.now() - duration
                 print(f"Execution time: {duration}")
                 if streamlit:
                     st.markdown(f"<span style='font-weight: bold;'>Execution time: {duration}</span>",
                                 unsafe_allow_html=True)
+
+        ## Show final date separator line
+        print("*"*(69+max_fun))

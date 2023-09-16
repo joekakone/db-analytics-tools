@@ -125,11 +125,13 @@ ETL API is in the integration module `db_analytics_tools.integration`. Let's imp
 import db_analytics_tools.integration as dbi
 
 # Setup ETL
-etl = dbi.ETL(host=HOST, port=PORT, database=DATABASE, username=USER, password=PASSWORD, engine=ENGINE)
+etl = dbi.ETL(client=client)
 ```
 
-ETLs for DB Analytics Tools consists in functions with date parameters. Everything is done in one place i.e on the database. So first create a function on the database like this
-```sql
+ETLs for DB Analytics Tools consists in functions with date parameters. Everything is done in one place i.e on the database. So first create a function on the database like this :
+```python
+query = """
+----- CREATE FUNCTION ON DB -----
 create or replace function public.fn_test(rundt date) returns integer
 language plpgsql
 as
@@ -147,8 +149,10 @@ begin
 	return 0;
 end;
 $$;
-```
+"""
 
+client.execute(query=query)
+```
 ### Run a function
 Then ETL function can easily be run using the ETL class via the method `ETL.run()`
 ```python
@@ -194,21 +198,27 @@ etl.run_multiple(functions=FUNCTIONS, start_date=START, stop_date=STOP, freq="d"
 Functions   : ['public.fn_test', 'public.fn_test_long', 'public.fn_test_very_long']
 Date Range  : From 2023-08-01 to 2023-08-05
 Iterations  : 5
-[Runing Date: 2023-08-01] [Function: public.fn_test..........] Execution time: 0:00:00.159917
-[Runing Date: 2023-08-01] [Function: public.fn_test_long.....] Execution time: 0:00:00.182654
-[Runing Date: 2023-08-01] [Function: public.fn_test_very_long] Execution time: 0:00:00.095138
-[Runing Date: 2023-08-02] [Function: public.fn_test..........] Execution time: 0:00:00.125952
-[Runing Date: 2023-08-02] [Function: public.fn_test_long.....] Execution time: 0:00:00.134392
-[Runing Date: 2023-08-02] [Function: public.fn_test_very_long] Execution time: 0:00:00.112478
-[Runing Date: 2023-08-03] [Function: public.fn_test..........] Execution time: 0:00:00.128775
-[Runing Date: 2023-08-03] [Function: public.fn_test_long.....] Execution time: 0:00:00.111676
-[Runing Date: 2023-08-03] [Function: public.fn_test_very_long] Execution time: 0:00:00.093985
-[Runing Date: 2023-08-04] [Function: public.fn_test..........] Execution time: 0:00:00.114726
-[Runing Date: 2023-08-04] [Function: public.fn_test_long.....] Execution time: 0:00:00.157993
-[Runing Date: 2023-08-04] [Function: public.fn_test_very_long] Execution time: 0:00:00.127080
-[Runing Date: 2023-08-05] [Function: public.fn_test..........] Execution time: 0:00:00.109306
-[Runing Date: 2023-08-05] [Function: public.fn_test_long.....] Execution time: 0:00:00.159218
-[Runing Date: 2023-08-05] [Function: public.fn_test_very_long] Execution time: 0:00:00.124130
+*********************************************************************************************
+[Runing Date: 2023-08-01] [Function: public.fn_test..........] Execution time: 0:00:00.110408
+[Runing Date: 2023-08-01] [Function: public.fn_test_long.....] Execution time: 0:00:00.112078
+[Runing Date: 2023-08-01] [Function: public.fn_test_very_long] Execution time: 0:00:00.092423
+*********************************************************************************************
+[Runing Date: 2023-08-02] [Function: public.fn_test..........] Execution time: 0:00:00.111153
+[Runing Date: 2023-08-02] [Function: public.fn_test_long.....] Execution time: 0:00:00.111395
+[Runing Date: 2023-08-02] [Function: public.fn_test_very_long] Execution time: 0:00:00.110814
+*********************************************************************************************
+[Runing Date: 2023-08-03] [Function: public.fn_test..........] Execution time: 0:00:00.111044
+[Runing Date: 2023-08-03] [Function: public.fn_test_long.....] Execution time: 0:00:00.123229
+[Runing Date: 2023-08-03] [Function: public.fn_test_very_long] Execution time: 0:00:00.078432
+*********************************************************************************************
+[Runing Date: 2023-08-04] [Function: public.fn_test..........] Execution time: 0:00:00.127839
+[Runing Date: 2023-08-04] [Function: public.fn_test_long.....] Execution time: 0:00:00.111339
+[Runing Date: 2023-08-04] [Function: public.fn_test_very_long] Execution time: 0:00:00.140669
+*********************************************************************************************
+[Runing Date: 2023-08-05] [Function: public.fn_test..........] Execution time: 0:00:00.138380
+[Runing Date: 2023-08-05] [Function: public.fn_test_long.....] Execution time: 0:00:00.111157
+[Runing Date: 2023-08-05] [Function: public.fn_test_very_long] Execution time: 0:00:00.077731
+*********************************************************************************************
 ```
 
 ## Documentation

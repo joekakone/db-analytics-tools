@@ -43,9 +43,9 @@ class Client:
         if verbose == 1:
             print('Connection established successfully !')
 
-    def test_connection(self):
+    def test_connection(self, verbose=1):
         try:
-            self.connect()
+            self.connect(verbose=1)
             self.close()
         except Exception:
             raise Exception("Something went wrong ! Verify database infos and credentials")
