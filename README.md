@@ -13,13 +13,44 @@ Databases Analytics Tools is a Python open source micro framework for data analy
 
 
 ## Core Components
-| #   | Component                         | Description                  | How to import                     |
-| --- | --------------------------------- | ---------------------------- | --------------------------------- |
-| 0   | db                                | Database Interactions (Client)| `import db_analytics_tools as db` |
-| 1   | dbi                               | Data Integration & Data Engineering | `import db_analytics_tools.integration as dbi` |
-| 2   | dba                               | Data Analysis                 | `import db_analytics_tools.analytics as dba` |
-| 3   | dbviz                             | Data Visualization            | `import db_analytics_tools.plotting as dbviz` |
-| 4   | dbml                              | Machine Learning & MLOps      | `import db_analytics_tools.learning as dbml` |
+<table>
+  <tr>
+    <th>#</th>
+    <th>Component</th>
+    <th>Description</th>
+    <th>How to import</th>
+  </tr>
+  <tr>
+    <td>0</td>
+    <td>db</td>
+    <td>Database Interactions (Client)</td>
+    <td><code>import db_analytics_tools as db</code></td>
+  </tr>
+  <tr>
+    <td>1</td>
+    <td>dbi</td>
+    <td>Data Integration & Data Engineering</td>
+    <td><code>import db_analytics_tools.integration as dbi</code></td>
+  </tr>
+  <tr>
+    <td>2</td>
+    <td>dba</td>
+    <td>Data Analysis</td>
+    <td><code>import db_analytics_tools.analytics as dba</code></td>
+  </tr>
+  <tr>
+    <td>3</td>
+    <td>dbviz</td>
+    <td>Data Visualization</td>
+    <td><code>import db_analytics_tools.plotting as dbviz</code></td>
+  </tr>
+  <tr>
+    <td>4</td>
+    <td>dbml</td>
+    <td>Machine Learning & MLOps</td>
+    <td><code>import db_analytics_tools.learning as dbml</code></td>
+  </tr>
+</table>
 
 
 ## Install DB Analytics Tools
