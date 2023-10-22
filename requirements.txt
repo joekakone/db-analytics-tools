@@ -3,3 +3,4 @@ pyodbc==4.0.39
 pandas==2.0.3
 SQLAlchemy==2.0.20
 streamlit==1.26.0
+matplotlib
