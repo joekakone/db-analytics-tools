@@ -11,6 +11,9 @@ import pandas as pd
 from db_analytics_tools import Client
 
 
+NBCHAR = 70
+
+
 class ETL:
     """
     SQL Based ETL (Extract, Transform, Load) Class
@@ -98,8 +101,8 @@ class ETL:
                 self.client.execute(query)
             except Exception as e:
                 raise Exception("Something went wrong!")
-            finally:
-                self.client.close()
+            # finally:
+            #     self.client.close()
 
             duration = datetime.datetime.now() - duration
             print(f"Execution time: {duration}")
@@ -107,7 +110,60 @@ class ETL:
                 st.markdown(f"<span style='font-weight: bold;'>Execution time: {duration}</span>",
                             unsafe_allow_html=True)
 
-    def run_dates(self, functions, dates, freq='d', reverse=False, streamlit=False):
+    def run_dates(self, functions, dates, reverse=False, streamlit=False):
+        """
+        Run multiple specified SQL functions for a range of dates.
+
+        :param functions: A list of SQL functions to run for each date.
+        :param dates: A list of dates
+        :param reverse: If True, the date range is generated in reverse order (from stop_date to start_date).
+        :param streamlit: If True, use Streamlit for progress updates.
+        """
+        print(f'Functions   : {functions}')
+
+        # Compute MAX Length of functions (Adjust display)
+        max_fun = max(len(function) for function in functions)
+
+        # Generate Dates Range
+        dates_ranges = dates
+        if reverse:
+            dates_ranges = list(reversed(dates_ranges))
+        
+        ##
+        print(f'Iterations  : {len(dates_ranges)}')
+
+        # Send query to the server
+        for date in dates_ranges:
+            # Show date separator line
+            print("*" * (NBCHAR + max_fun))
+            for function in functions:
+                print(f"[Running Date: {date}] [Function: {function.ljust(max_fun, '.')}] ", end="", flush=True)
+                if streamlit:
+                    import streamlit as st
+                    st.markdown(
+                        f"<span style='font-weight: bold;'>[Running Date: {date}] [Function: {function}] </span>",
+                        unsafe_allow_html=True)
+
+                query = f"select {function}('{date}'::date);"
+                duration = datetime.datetime.now()
+
+                try:
+                    self.client.execute(query)
+                except Exception as e:
+                    raise Exception("Something went wrong!")
+                # finally:
+                #     self.client.close()
+
+                duration = datetime.datetime.now() - duration
+                print(f"Execution time: {duration}")
+                if streamlit:
+                    st.markdown(f"<span style='font-weight: bold;'>Execution time: {duration}</span>",
+                                unsafe_allow_html=True)
+
+        # Show final date separator line
+        print("*" * (NBCHAR + max_fun))
+
+    def run_multiple(self, functions, start_date, stop_date=None, dates=[], freq='d', reverse=False, streamlit=False):
         """
         Run multiple specified SQL functions for a range of dates.
 
@@ -124,12 +180,12 @@ class ETL:
         max_fun = max(len(function) for function in functions)
 
         # Generate Dates Range
-        dates_ranges = dates
+        dates_ranges = self.generate_date_range(start_date, stop_date, freq, reverse)
 
         # Send query to the server
         for date in dates_ranges:
             # Show date separator line
-            print("*" * (69 + max_fun))
+            print("*" * (NBCHAR + max_fun))
             for function in functions:
                 print(f"[Running Date: {date}] [Function: {function.ljust(max_fun, '.')}] ", end="", flush=True)
                 if streamlit:
@@ -145,8 +201,8 @@ class ETL:
                     self.client.execute(query)
                 except Exception as e:
                     raise Exception("Something went wrong!")
-                finally:
-                    self.client.close()
+                # finally:
+                #     self.client.close()
 
                 duration = datetime.datetime.now() - duration
                 print(f"Execution time: {duration}")
@@ -155,57 +211,7 @@ class ETL:
                                 unsafe_allow_html=True)
 
         # Show final date separator line
-        print("*" * (69 + max_fun))
-
-        def run_multiple(self, functions, start_date, stop_date=None, dates=[], freq='d', reverse=False, streamlit=False):
-            """
-            Run multiple specified SQL functions for a range of dates.
-
-            :param functions: A list of SQL functions to run for each date.
-            :param start_date: The start date for the range.
-            :param stop_date: The stop date for the range.
-            :param freq: The frequency of the dates ('d' for daily, 'm' for monthly).
-            :param reverse: If True, the date range is generated in reverse order (from stop_date to start_date).
-            :param streamlit: If True, use Streamlit for progress updates.
-            """
-            print(f'Functions   : {functions}')
-
-            # Compute MAX Length of functions (Adjust display)
-            max_fun = max(len(function) for function in functions)
-
-            # Generate Dates Range
-            dates_ranges = self.generate_date_range(start_date, stop_date, freq, reverse)
-
-            # Send query to the server
-            for date in dates_ranges:
-                # Show date separator line
-                print("*" * (69 + max_fun))
-                for function in functions:
-                    print(f"[Running Date: {date}] [Function: {function.ljust(max_fun, '.')}] ", end="", flush=True)
-                    if streamlit:
-                        import streamlit as st
-                        st.markdown(
-                            f"<span style='font-weight: bold;'>[Running Date: {date}] [Function: {function}] </span>",
-                            unsafe_allow_html=True)
-
-                    query = f"select {function}('{date}'::date);"
-                    duration = datetime.datetime.now()
-
-                    try:
-                        self.client.execute(query)
-                    except Exception as e:
-                        raise Exception("Something went wrong!")
-                    finally:
-                        self.client.close()
-
-                    duration = datetime.datetime.now() - duration
-                    print(f"Execution time: {duration}")
-                    if streamlit:
-                        st.markdown(f"<span style='font-weight: bold;'>Execution time: {duration}</span>",
-                                    unsafe_allow_html=True)
-
-            # Show final date separator line
-            print("*" * (69 + max_fun))
+        print("*" * (NBCHAR + max_fun))
 
 
 def create_etl(host, port, database, username, password, engine):
