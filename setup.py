@@ -7,7 +7,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="db_analytics_tools",
-    version="0.1.4.11",
+    version="0.1.4.12",
     url="https://josephkonka.com/#projects",
     download_url="https://github.com/joekakone/db-analytics-tools",
     project_urls={
@@ -23,12 +23,12 @@ setup(
     long_description=long_description,
     long_description_content_type="text/markdown",
     install_requires=[
-        "psycopg2-binary",
-        "pyodbc",
-        "pandas",
-        "SQLAlchemy",
-        "streamlit",
-        "matplotlib"
+        "psycopg2-binary>=2.9.9",
+        "pyodbc>=5.1.0",
+        "pandas>=2.2.1",
+        "SQLAlchemy>=2.0.29",
+        "streamlit>=1.32.2",
+        "matplotlibmatplotlib>=3.8.3"
     ],
     python_requires=">=3.6",
     packages=find_packages()
