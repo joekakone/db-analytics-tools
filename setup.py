@@ -7,7 +7,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="db_analytics_tools",
-    version="0.1.4.12",
+    version="0.1.4.13",
     url="https://josephkonka.com/#projects",
     download_url="https://github.com/joekakone/db-analytics-tools",
     project_urls={
@@ -28,7 +28,7 @@ setup(
         "pandas>=2.2.1",
         "SQLAlchemy>=2.0.29",
         "streamlit>=1.32.2",
-        "matplotlibmatplotlib>=3.8.3"
+        "matplotlibmatplotlib>=3.4.3"
     ],
     python_requires=">=3.6",
     packages=find_packages()
