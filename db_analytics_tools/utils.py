@@ -58,7 +58,7 @@ class Client:
                                          password=self.password)
         elif self.engine == "sqlserver":
             import pyodbc
-            self.conn = pyodbc.connect("Driver={SQL Server};"
+            self.conn = pyodbc.connect(f"DRIVER={{ODBC Driver 17 for SQL Server}};" 
                                        f"Server={self.host},{self.port};"
                                        f"Database={self.database};"
                                        f"UID={self.username};"
