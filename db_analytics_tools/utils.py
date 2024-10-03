@@ -58,12 +58,11 @@ class Client:
                                          password=self.password)
         elif self.engine == "sqlserver":
             import pyodbc
-            self.conn = pyodbc.connect(f"DRIVER={{ODBC Driver 17 for SQL Server}};" 
-                                       f"Server={self.host},{self.port};"
-                                       f"Database={self.database};"
-                                       f"UID={self.username};"
-                                       f"PWD={self.password};"
-                                       "Trusted_Connection=yes;")
+            self.conn = pyodbc.connect(f"DRIVER={{ODBC Driver 17 for SQL Server}};" \
+                                       f"SERVER={self.host};" \
+                                       f"DATABASE={self.database};" \
+                                       f"UID={self.username};" \
+                                       f"PWD={self.password};")
         else:
             raise NotImplementedError("Engine not supported")
         # Create cursor
