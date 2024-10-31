@@ -75,18 +75,19 @@ class ETL:
 
             return [start_date]
 
-        dates_ranges = list(pd.date_range(start=start_date, end=stop_date, freq='d'))
+        # Generate continuous dates with formatted strings
+        dates_ranges = pd.date_range(start=start_date, end=stop_date, freq='D').strftime('%Y-%m-%d').tolist()
 
         # Manage Frequency
-        if freq.upper() == 'D':
-            dates_ranges = [dt.strftime('%Y-%m-%d') for dt in dates_ranges]
-        elif freq.upper() == 'M':
-            dates_ranges = [
-                dt.strftime('%Y-%m-%d')
-                for dt in dates_ranges if dt.strftime('%Y-%m-%d').endswith('01')
-            ]
-        else:
+        if freq.upper() not in ['D', 'M', 'W']:
             raise NotImplementedError("Frequency not supported!")
+
+        if freq.upper() == 'M':
+            # Keep only dates that represent the first day of each month
+            dates_ranges = [date for date in dates_ranges if date.endswith('-01')]
+        elif freq.upper() == 'W':
+            # Keep only dates that represent the first day of each week (every 7 days)
+            dates_ranges = [date for i, date in enumerate(dates_ranges) if i % 7 == 0]
 
         # Reverse
         if reverse:  # Recent to Old
