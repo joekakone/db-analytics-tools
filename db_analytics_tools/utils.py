@@ -203,6 +203,64 @@ class Client:
             print(f'Execution time: {duration}')
 
 
+def create_client(host, port, database, username, password, engine, keep_connection):
+    """
+    Creates a SQL Client instance for database operations.
+
+    This function establishes a connection to the specified database server with the provided
+    credentials and engine type. It returns a `Client` instance which can be used to interact with
+    the database, allowing data extraction, transformation, and loading (ETL) operations.
+
+    :param host: str - The hostname or IP address of the database server.
+    :param port: int - The port number to use for the database connection.
+    :param database: str - The name of the database to connect to.
+    :param username: str - The username for authenticating the database connection.
+    :param password: str - The password for authenticating the database connection.
+    :param engine: str - The database engine to use; supported values are 'postgres' and 'sqlserver'.
+    :param keep_connection: bool - If True, the connection will be maintained until explicitly closed.
+                            If False, the connection will be opened and closed for each operation.
+    :return: Client - A `Client` instance configured for interacting with the specified database.
+    """
+    client = Client(host=host,
+                    port=port,
+                    database=database,
+                    username=username,
+                    password=password,
+                    engine=engine,
+                    keep_connection=keep_connection)
+    return client
+
+
+def create_client_from_config(config):
+    """
+    Creates a SQL Client instance from a configuration dictionary.
+
+    This function takes a configuration dictionary containing the necessary connection details
+    and creates a `Client` instance for performing data operations. The configuration dictionary
+    should contain the following keys: 'host', 'port', 'database', 'username', 'password',
+    'engine', and 'keep_connection'.
+
+    :param config: dict - A dictionary containing the database connection parameters:
+                   - host: str - The hostname or IP address of the database server.
+                   - port: int - The port number to use for the database connection.
+                   - database: str - The name of the database to connect to.
+                   - username: str - The username for authenticating the database connection.
+                   - password: str - The password for authenticating the database connection.
+                   - engine: str - The database engine to use; supported values are 'postgres' and 'sqlserver'.
+                   - keep_connection: bool - If True, the connection will be maintained until explicitly closed.
+                                              If False, the connection will be opened and closed for each operation.
+    :return: Client - A `Client` instance configured for interacting with the specified database.
+    """
+    client = Client(host=config.get("host"),
+                    port=config.get("port"),
+                    database=config.get("database"),
+                    username=config.get("username"),
+                    password=config.get("password"),
+                    engine=config.get("engine"),
+                    keep_connection=config.get("keep_connection", False))
+    return client
+
+
 def dataframe_to_csv(dataframe, output_file, sep=";", encoding='latin_1'):
     """
     Save a Pandas DataFrame to a CSV file.
