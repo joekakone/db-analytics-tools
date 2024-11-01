@@ -10,8 +10,16 @@
 
 import urllib
 import datetime
+import json
 
 import pandas as pd
+
+# Frequeny
+FREQ = {
+    "Daily": "d",
+    "Weekly": "w",
+    "Monthly": "m"
+}
 
 
 class Client:
@@ -353,3 +361,10 @@ def db_to_db(query, source_client, destination_client, destination_table, if_exi
                     destination_table=destination_table,
                     if_exists=if_exists,
                     chunksize=chunksize)
+
+
+def get_config(path):
+    with open(path, "r") as f:
+        config = json.load(f)
+
+    return config

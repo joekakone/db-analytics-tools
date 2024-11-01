@@ -6,9 +6,11 @@
 
 import datetime
 
+from psycopg2 import OperationalError
 import pandas as pd
+import streamlit as st
 
-from db_analytics_tools import Client
+import db_analytics_tools as db
 
 
 NBCHAR = 70
@@ -25,7 +27,7 @@ class ETL:
 
     def __init__(self, client):
         try:
-            assert isinstance(client, Client)
+            assert isinstance(client, db.Client)
         except Exception:
             raise Exception("Something went wrong!")
 
@@ -58,7 +60,6 @@ class ETL:
             print(f'Iterations  : {len(dates_ranges)}')
 
             if streamlit:
-                import streamlit as st
                 st.markdown(f"<p>Date Range  : From {dates_ranges[0]} to {dates_ranges[-1]}</p>", unsafe_allow_html=True)
                 st.markdown(f"<p>Iterations  : {len(dates_ranges)}</p>", unsafe_allow_html=True)
 
@@ -69,7 +70,6 @@ class ETL:
             print('Iterations  : 1')
 
             if streamlit:
-                import streamlit as st
                 st.markdown(f"<p>Date        : {start_date}</p>", unsafe_allow_html=True)
                 st.markdown(f"<p>Iterations  : 1</p>", unsafe_allow_html=True)
 
@@ -97,7 +97,6 @@ class ETL:
         print(f'Iterations  : {len(dates_ranges)}')
 
         if streamlit:
-            import streamlit as st
             st.markdown(f"<p>Date Range  : From {dates_ranges[0]} to {dates_ranges[-1]}</p>", unsafe_allow_html=True)
             st.markdown(f"<p>Iterations  : {len(dates_ranges)}</p>", unsafe_allow_html=True)
 
@@ -125,7 +124,6 @@ class ETL:
         for date in dates_ranges:
             print(f"[Running Date: {date}] [Function: {function}] ", end="", flush=True)
             if streamlit:
-                import streamlit as st
                 st.markdown(f"<span style='font-weight: bold;'>[Running Date: {date}] [Function: {function}] </span>",
                             unsafe_allow_html=True)
 
@@ -175,8 +173,7 @@ class ETL:
             for function in functions:
                 print(f"[Running Date: {date}] [Function: {function.ljust(max_fun, '.')}] ", end="", flush=True)
                 if streamlit:
-                    import streamlit as st
-                    st.markdown(
+                        st.markdown(
                         f"<span style='font-weight: bold;'>[Running Date: {date}] [Function: {function}] </span>",
                         unsafe_allow_html=True)
 
@@ -214,12 +211,185 @@ def create_etl(host, port, database, username, password, engine, keep_connection
                            will be opened and closed for each database operation (default is False).
     :return: An ETL instance for performing data extraction, transformation, and loading.
     """
-    client = Client(host=host,
-                    port=port,
-                    database=database,
-                    username=username,
-                    password=password,
-                    engine=engine,
-                    keep_connection=keep_connection)
+    client = db.Client(host=host,
+                       port=port,
+                       database=database,
+                       username=username,
+                       password=password,
+                       engine=engine,
+                       keep_connection=keep_connection)
     etl = ETL(client)
     return etl
+
+
+import json
+import streamlit as st
+from psycopg2 import OperationalError
+import db_analytics_tools as db
+import db_analytics_tools.integration as dbi
+
+class UI:
+    def __init__(self, config):
+        """
+        Initializes the UI with database configuration and pipelines.
+
+        :param config: A dictionary containing configuration details for the database,
+                       allowed users, and pipeline configurations.
+        """
+        self.db_info = config["db_info"]
+        self.allowed_users = config["allowed_users"]
+        self.pipelines = self.get_pipelines(config["pipelines"])
+        self.app_name = config["app_name"]
+        self.app_description = config["app_description"]
+        self.functions = {pipeline["pipeline_name"]: pipeline for pipeline in config["pipelines"]}
+        
+        # Initialize session state variables if they don't exist
+        if "logged_in" not in st.session_state:
+            st.session_state.logged_in = False
+        if "client" not in st.session_state:
+            st.session_state.client = None
+        if "etl" not in st.session_state:
+            st.session_state.etl = None
+
+    @staticmethod
+    def get_pipelines(pipelines):
+        """
+        Processes and organizes pipeline configurations into a dictionary format
+        with pipeline names as keys and pipeline details as values. Additionally,
+        it adds single function options for multiple pipelines.
+
+        :param pipelines: A list of pipeline configuration dictionaries.
+        :return: A dictionary where each key is a unique pipeline name and each value is the pipeline configuration.
+        """
+        pipelines_ = {
+            f"{elt['pipeline_name']} ({elt['pipeline_type']})": elt
+            for elt in pipelines
+        }
+        
+        # Add individual functions as single pipelines for multi-function pipelines
+        pipelines_.update({
+            f"{fun} ({elt['pipeline_name']})": {
+                "pipeline_name": fun,
+                "pipeline_type": "single",
+                "pipeline_functions": [fun]
+            } 
+            for elt in pipelines if elt["pipeline_type"] == "multiple" for fun in elt["pipeline_functions"]
+        })
+        
+        return pipelines_
+
+    def authenticate(self, username, password):
+        """
+        Authenticates a user by verifying the username and password against allowed users.
+
+        :param username: The username entered by the user.
+        :param password: The password entered by the user.
+        :return: True if authentication is successful, False otherwise.
+        """
+        if username == "" or password == "":
+            st.sidebar.error("Missing credentials!")
+            return False
+        elif username not in self.allowed_users:
+            st.sidebar.error("You are not allowed! Please contact the administrator.")
+            return False
+        return True
+
+    def start(self):
+        """
+        Launches the Streamlit application with authentication and UI functionality.
+        Displays the application title, description, and handles authentication.
+        """
+        # App Layout and Sidebar Configuration
+        st.set_page_config(
+            page_title=f"Job Executor - {self.app_name}", 
+            page_icon="https://cdn-icons-png.flaticon.com/512/4016/4016758.png", 
+            layout="centered", 
+            initial_sidebar_state="auto"
+        )
+        st.title(self.app_name)
+        st.write(self.app_description)
+
+        # Sidebar Authentication
+        st.sidebar.title("Authentication")
+        engine = st.sidebar.text_input("Engine", value=self.db_info["engine"])
+        host = st.sidebar.text_input("Host", value=self.db_info["host"])
+        port = st.sidebar.text_input("Port", value=self.db_info["port"])
+        database = st.sidebar.text_input("Database", value=self.db_info["database"])
+        username = st.sidebar.text_input("Username")
+        password = st.sidebar.text_input("Password", type="password")
+
+        # Connect Button
+        if st.sidebar.button("Connect"):
+            if self.authenticate(username, password):
+                try:
+                    st.session_state.logged_in = True
+                    st.sidebar.success("Authentication successful!")
+                    st.session_state.client = db.Client(
+                        host=host, port=port, database=database, 
+                        username=username, password=password, engine=engine
+                    )
+                    st.session_state.etl = dbi.ETL(st.session_state.client)
+                except Exception as e:
+                    st.sidebar.error(f"Authentication failed: {e}")
+
+        # Render pipeline selection if logged in
+        if st.session_state.logged_in:
+            self.render_pipeline_selection()
+
+    def render_pipeline_selection(self):
+        """
+        Renders the main pipeline selection and execution interface.
+        Provides dropdowns for selecting the pipeline, start and stop dates,
+        and the frequency, along with a "Run" button to initiate processing.
+        """
+        # Dropdown for pipeline selection
+        selected_pipeline = st.selectbox("Function", list(self.pipelines.keys()))
+
+        # Date selection
+        start_date = st.date_input("Start Date")
+        stop_date = st.date_input("Stop Date")
+
+        # Frequency selection
+        selected_freq = db.utils.FREQ[st.selectbox("Frequency", db.utils.FREQ.keys())]
+
+        # Run Button
+        if st.button("Run"):
+            try:
+                result = self.process_function(selected_pipeline, start_date, stop_date, selected_freq)
+                st.write("Result:")
+                st.write(result)
+            except OperationalError:
+                st.error("Operational Error!")
+            except Exception as e:
+                st.error(f"An error occurred: {e}")
+
+    def process_function(self, selected_pipeline, start_date, stop_date, freq):
+        """
+        Executes the selected pipeline with the provided parameters.
+
+        :param selected_pipeline: The name of the pipeline to execute.
+        :param start_date: The start date for the pipeline execution.
+        :param stop_date: The end date for the pipeline execution.
+        :param freq: The frequency of execution (e.g., daily, weekly, monthly).
+        :return: A result message detailing the selected pipeline and execution parameters.
+        """
+        pipeline = self.pipelines[selected_pipeline]
+        pipeline_type = pipeline["pipeline_type"]
+        pipeline_functions = pipeline["pipeline_functions"]
+
+        result = f"You selected: {selected_pipeline}\nStart Date: {start_date}\nStop Date: {stop_date}"
+
+        if pipeline_type == "single":
+            st.session_state.etl.run(
+                function=pipeline_functions[0], start_date=start_date, 
+                stop_date=stop_date, freq=freq, reverse=False, streamlit=True
+            )
+        elif pipeline_type == "multiple":
+            st.session_state.etl.run_multiple(
+                functions=pipeline_functions, start_date=start_date, 
+                stop_date=stop_date, freq=freq, reverse=False, streamlit=True
+            )
+        else:
+            raise NotImplementedError("Pipeline type not supported.")
+
+        return result
