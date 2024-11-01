@@ -257,7 +257,7 @@ DB Analytics Tools UI is a web-based GUI  (`db_analytics_tools.webapp.UI`). No n
 ```sh
 db_tools start --config config.json --address 127.0.0.1 --port 8050
 ```
-![](db-analytics-tools-ui-screenshot.png)
+![](https://raw.githubusercontent.com/joekakone/db-analytics-tools/master/db-analytics-tools-ui-screenshot.png)
 
 ## Documentation
 Documentation available on [https://joekakone.github.io/db-analytics-tools](https://joekakone.github.io/db-analytics-tools).
