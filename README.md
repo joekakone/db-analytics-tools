@@ -160,7 +160,7 @@ You can cancel query by its session_id.
 client.cancel_query(10284)
 ```
 
-You can go further cancelling 
+You can go further cancelling on lock
 ```py
 client.cancel_locked_queries()
 ```
