@@ -210,7 +210,7 @@ class Client:
         if verbose == 1:
             print(f'Execution time: {duration}')
             
-    def show_sessions(self):
+    def show_sessions(self, include_all=False):
         """
         Retrieves and displays the list of active database sessions for the current user.
 
@@ -276,7 +276,12 @@ class Client:
             """
         else:
             raise NotImplementedError("Engine not supported")
-        return self.read_sql(query)
+        if include_all:
+            return self.read_sql(query)
+        
+        subset = ["session_id", "resource_group_id","username", "client_address","application_name",
+                  "query","state","waiting","waiting_reason","query_start","backend_start"]
+        return self.read_sql(query)[subset]
     
     def cancel_query(self, session_id, verbose=0):
         """
