@@ -209,6 +209,102 @@ class Client:
         duration = datetime.datetime.now() - duration
         if verbose == 1:
             print(f'Execution time: {duration}')
+            
+    def show_sessions(self):
+        """
+        Retrieves and displays the list of active database sessions for the current user.
+
+        This method queries the database to fetch session details, including session ID, 
+        user name, client address, application name, query status, and timestamps.
+
+        - For PostgreSQL, it retrieves detailed session information from `pg_stat_activity`.
+        - For SQL Server, it retrieves running requests from `sys.dm_exec_requests`.
+
+        :raises NotImplementedError: If the database engine is not supported.
+        :return: A DataFrame containing session details.
+        """
+        if self.engine == "postgres":
+            query = """
+                select pid         session_id,
+                    rsgid       resource_group_id,
+                    sess_id     session_internal_id,
+                    usename     username,
+                    client_addr client_address,
+                    application_name,
+                    query,
+                    state,
+                    waiting,
+                    waiting_reason,
+                    null        waiting_time_ms,
+                    query_start,
+                    backend_start,
+                    xact_start,
+                    state_change,
+                    null        cpu_time,
+                    null        total_elapsed_time,
+                    null        reads_,
+                    null        writes_
+                from pg_stat_activity
+                where usename = current_user
+                order by query_start desc;
+            """
+        elif self.engine == "sqlserver":
+            query = """
+                SELECT s.session_id                                             AS session_id,
+                    NULL                                                     AS resource_group_id,
+                    r.request_id                                             AS session_internal_id,
+                    s.login_name                                             AS username,
+                    s.host_name                                              AS client_address,
+                    s.program_name                                           AS application_name,
+                    r.command                                                AS query,
+                    r.status                                                 AS state,
+                    CAST(CASE WHEN r.wait_time = 0 THEN 0 ELSE 1 END AS BIT) AS waiting,
+                    r.wait_type                                              AS waiting_reason,
+                    r.wait_time                                              AS waiting_time_ms,
+                    r.start_time                                             AS query_start,
+                    s.login_time                                             AS backend_start,
+                    NULL                                                     AS xact_start,
+                    NULL                                                     AS state_change,
+                    r.cpu_time,
+                    r.total_elapsed_time,
+                    r.reads                                                  AS reads_,
+                    r.writes                                                 AS writes_
+                FROM sys.dm_exec_sessions s
+                        LEFT JOIN sys.dm_exec_requests r ON s.session_id = r.session_id
+                WHERE s.login_name = SUSER_NAME()
+                ORDER BY r.start_time DESC;
+            """
+        else:
+            raise NotImplementedError("Engine not supported")
+        return self.read_sql(query)
+    
+    def cancel_query(self, session_id, verbose=0):
+        """
+        Cancel a running query based on its session ID.
+
+        :param session_id: The session ID of the query to cancel.
+        :param verbose: If set to 1, print the execution time.
+        """
+        if self.engine == "postgres":
+            query = f"select pg_cancel_backend({session_id});"
+        elif self.engine == "sqlserver":
+            query = f"kill {session_id};"
+        else:
+            raise NotImplementedError("Engine not supported")
+
+        self.execute(query, verbose=verbose)
+    
+    def cancel_locked_queries(self, verbose=0):
+        """
+        Cancel a locked queries.
+
+        :param verbose: If set to 1, print the execution time.
+        """
+        locks = self.show_sessions().query("waiting == True").to_dict(orient="records")
+        for lock in locks:
+            print(f"Canceling session ID: {lock['session_id']} ... '{lock['query'][:25]}'", end=" ... ")
+            self.cancel_query(lock["session_id"], verbose=verbose)
+            print("Canceled !")
 
 
 def create_client(host, port, database, username, password, engine, keep_connection):

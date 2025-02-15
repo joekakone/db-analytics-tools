@@ -149,6 +149,23 @@ print(dataframe.head())
 4               5        105    Product B       Category 2         4           50.0   200.0
 ```
 
+## Show current queries
+You can simply show current queries for current user.
+```py
+client.show_sessions()
+```
+
+You can cancel query by its session_id.
+```py
+client.cancel_query(10284)
+```
+
+You can go further cancelling 
+```py
+client.cancel_locked_queries()
+```
+This will canceled all current lockes queries.
+
 ## Implement SQL based ETL
 ETL API is in the integration module `db_analytics_tools.integration`. Let's import it ans create an ETL object.
 ```python
