@@ -123,6 +123,9 @@ class ETL:
 
         # Send query to the server
         for date in dates_ranges:
+            if pause:
+                time.sleep(pause)
+
             print(f"[Running Date: {date}] [Function: {function}] ", end="", flush=True)
             if streamlit:
                 st.markdown(f"<span style='font-weight: bold;'>[Running Date: {date}] [Function: {function}] </span>",
@@ -143,8 +146,6 @@ class ETL:
             if streamlit:
                 st.markdown(f"<span style='font-weight: bold;'>Execution time: {duration}</span>",
                             unsafe_allow_html=True)
-            if pause:
-                time.sleep(pause)
 
     def run_multiple(self, functions, start_date=None, stop_date=None, freq=None, dates=None, pause=None, reverse=False, streamlit=False):
         """
@@ -174,9 +175,12 @@ class ETL:
             # Show date separator line
             print("*" * (NBCHAR + max_fun))
             for function in functions:
+                if pause:
+                    time.sleep(pause)
+
                 print(f"[Running Date: {date}] [Function: {function.ljust(max_fun, '.')}] ", end="", flush=True)
                 if streamlit:
-                        st.markdown(
+                    st.markdown(
                         f"<span style='font-weight: bold;'>[Running Date: {date}] [Function: {function}] </span>",
                         unsafe_allow_html=True)
 
@@ -195,8 +199,6 @@ class ETL:
                 if streamlit:
                     st.markdown(f"<span style='font-weight: bold;'>Execution time: {duration}</span>",
                                 unsafe_allow_html=True)
-                if pause:
-                    time.sleep(pause)
 
 
         # Show final date separator line
