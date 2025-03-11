@@ -35,7 +35,7 @@ class ETL:
         self.client = client
 
     @staticmethod
-    def generate_date_range(start_date, stop_date=None, freq=None, dates=None, pause=0, reverse=False, streamlit=False):
+    def generate_date_range(start_date, stop_date=None, freq=None, dates=None, reverse=False, streamlit=False):
         """
         Generate a range of dates.
 
@@ -103,7 +103,7 @@ class ETL:
 
         return dates_ranges
 
-    def run(self, function, start_date=None, stop_date=None, freq=None, dates=None, pause=0, reverse=False, streamlit=False):
+    def run(self, function, start_date=None, stop_date=None, freq=None, dates=None, pause=1, reverse=False, streamlit=False):
         """
         Run a specified SQL function for a range of dates.
 
@@ -146,7 +146,7 @@ class ETL:
                 st.markdown(f"<span style='font-weight: bold;'>Execution time: {duration}</span>",
                             unsafe_allow_html=True)
 
-    def run_multiple(self, functions, start_date=None, stop_date=None, freq=None, dates=None, pause=0, reverse=False, streamlit=False):
+    def run_multiple(self, functions, start_date=None, stop_date=None, freq=None, dates=None, pause=1, reverse=False, streamlit=False):
         """
         Run multiple specified SQL functions for a range of dates.
 
