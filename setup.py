@@ -7,7 +7,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="db_analytics_tools",
-    version="0.1.6.3",
+    version="0.1.6.4",
     url="https://josephkonka.com/#projects",
     download_url="https://github.com/joekakone/db-analytics-tools",
     project_urls={
