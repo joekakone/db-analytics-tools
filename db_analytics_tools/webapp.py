@@ -115,6 +115,7 @@ class UI:
         database = st.sidebar.text_input("Database", value=self.db_info["database"])
         username = st.sidebar.text_input("Username")
         password = st.sidebar.text_input("Password", type="password")
+        self.run_custom_function = st.sidebar.checkbox("Run Custom Function", value=False)
 
         # Connect Button
         if st.sidebar.button("Connect"):
@@ -139,6 +140,8 @@ class UI:
             "© 2023 DB Analytics Tools | [About project](https://pypi.org/project/db-analytics-tools/)",
             unsafe_allow_html=True
         )
+        
+        return self.run_custom_function 
 
     def render_pipeline_selection(self):
         """
@@ -146,8 +149,12 @@ class UI:
         Provides dropdowns for selecting the pipeline, start and stop dates,
         and the frequency, along with a "Run" button to initiate processing.
         """
-        # Dropdown for pipeline selection
-        selected_pipeline = st.selectbox("Pipeline", list(self.pipelines.keys()))
+        # Custom Function Input
+        if self.run_custom_function:
+            selected_pipeline = st.text_input("Custom Pipeline", value="bibox.fn_rech_freq_tracking_day_v4")
+            print(selected_pipeline)
+        else: # Dropdown for pipeline selection
+            selected_pipeline = st.selectbox("Pipeline", list(self.pipelines.keys()))
 
         # Date selection
         start_date = st.date_input("Start Date")
@@ -177,9 +184,26 @@ class UI:
         :param freq: The frequency of execution (e.g., daily, weekly, monthly).
         :return: A result message detailing the selected pipeline and execution parameters.
         """
-        pipeline = self.pipelines[selected_pipeline]
-        pipeline_type = pipeline["pipeline_type"]
-        pipeline_functions = pipeline["pipeline_functions"]
+        if self.run_custom_function:
+            print("Running custom function")
+            # pipeline = self.pipelines[selected_pipeline]
+            # pipeline_type = "single"
+            # pipeline_functions = [selected_pipeline]
+            pipeline = {
+                "pipeline_name": selected_pipeline, 
+                "pipeline_type": "single", 
+                "pipeline_functions": [selected_pipeline]
+            }
+            pipeline_type = pipeline["pipeline_type"]
+            pipeline_functions = pipeline["pipeline_functions"]
+        else:
+            pipeline = self.pipelines[selected_pipeline]
+            pipeline_type = pipeline["pipeline_type"]
+            pipeline_functions = pipeline["pipeline_functions"]
+    
+        print("pipeline:", pipeline)
+        print("pipeline_type:", pipeline_type)
+        print("pipeline_functions:", pipeline_functions)
 
         result = f"You selected: {selected_pipeline}\nStart Date: {start_date}\nStop Date: {stop_date}"
 
