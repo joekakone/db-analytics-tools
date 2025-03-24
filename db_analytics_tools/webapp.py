@@ -151,7 +151,7 @@ class UI:
         """
         # Custom Function Input
         if self.run_custom_function:
-            selected_pipeline = st.text_input("Custom Pipeline", value="bibox.fn_rech_freq_tracking_day_v4")
+            selected_pipeline = st.text_input("Custom Pipeline", value="schema.fn_exmpale_function")
             print(selected_pipeline)
         else: # Dropdown for pipeline selection
             selected_pipeline = st.selectbox("Pipeline", list(self.pipelines.keys()))
@@ -186,9 +186,6 @@ class UI:
         """
         if self.run_custom_function:
             print("Running custom function")
-            # pipeline = self.pipelines[selected_pipeline]
-            # pipeline_type = "single"
-            # pipeline_functions = [selected_pipeline]
             pipeline = {
                 "pipeline_name": selected_pipeline, 
                 "pipeline_type": "single", 
@@ -200,10 +197,6 @@ class UI:
             pipeline = self.pipelines[selected_pipeline]
             pipeline_type = pipeline["pipeline_type"]
             pipeline_functions = pipeline["pipeline_functions"]
-    
-        print("pipeline:", pipeline)
-        print("pipeline_type:", pipeline_type)
-        print("pipeline_functions:", pipeline_functions)
 
         result = f"You selected: {selected_pipeline}\nStart Date: {start_date}\nStop Date: {stop_date}"
 
