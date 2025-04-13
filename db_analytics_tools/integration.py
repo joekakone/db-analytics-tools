@@ -179,9 +179,6 @@ class ETL:
         # Compute MAX Length of functions (Adjust display)
         max_fun = max(len(function) for function in functions)
 
-        # Generate Dates Range
-        dates_ranges = self.generate_date_range(start_date, stop_date, freq, dates, reverse)
-
         # Initialization
         i = 1
 
