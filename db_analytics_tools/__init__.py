@@ -7,4 +7,4 @@
 
 from .utils import Client
 
-__version__ = "0.1.7.4"
+__version__ = "0.1.7.5"
