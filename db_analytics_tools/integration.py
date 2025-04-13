@@ -119,8 +119,14 @@ class ETL:
         """
         # Generate Dates Range
         dates_ranges = self.generate_date_range(start_date, stop_date, freq, dates, reverse, streamlit)
-        
+
+        # Total Iterations
+        total_iterations = len(dates_ranges)
+
         print(f'Function    : {function}')
+
+        # Initialization
+        i = 1
 
         # Send query to the server
         for date in dates_ranges:
@@ -141,10 +147,13 @@ class ETL:
                 raise Exception("Something went wrong!")
 
             duration = datetime.datetime.now() - duration
-            print(f"Execution time: {duration}")
+            progression = i / total_iterations * 100
+            progression = f"{progression:.2f}%"
+            execuxtion_time = f"Execution time: {duration} [{progression.ljust(7, ' ')}]"
+            i += 1
+            print(execuxtion_time)
             if streamlit:
-                st.markdown(f"<span style='font-weight: bold;'>Execution time: {duration}</span>",
-                            unsafe_allow_html=True)
+                st.markdown(f"<span style='font-weight: bold;'>{execuxtion_time}</span>", unsafe_allow_html=True)
 
     def run_multiple(self, functions, start_date=None, stop_date=None, freq=None, dates=None, pause=1, reverse=False, streamlit=False):
         """
@@ -161,7 +170,10 @@ class ETL:
         """
         # Generate Dates Range
         dates_ranges = self.generate_date_range(start_date, stop_date, freq, dates, reverse, streamlit)
-        
+
+        # Total Iterations
+        total_iterations = len(dates_ranges)
+
         print(f'Functions   : {functions}')
 
         # Compute MAX Length of functions (Adjust display)
@@ -170,10 +182,13 @@ class ETL:
         # Generate Dates Range
         dates_ranges = self.generate_date_range(start_date, stop_date, freq, dates, reverse)
 
+        # Initialization
+        i = 1
+
         # Send query to the server
         for date in dates_ranges:
             # Show date separator line
-            print("*" * (NBCHAR + max_fun))
+            print("*" * (NBCHAR + max_fun + 9))
             for function in functions:
                 # Pause
                 time.sleep(pause)
@@ -193,14 +208,17 @@ class ETL:
                     raise Exception("Something went wrong!")
 
                 duration = datetime.datetime.now() - duration
-                print(f"Execution time: {duration}")
+                progression = i / total_iterations * 100
+                progression = f"{progression:.2f}%"
+                execuxtion_time = f"Execution time: {duration} [{progression.ljust(7, ' ')}]"
+                i += 1
+                print(execuxtion_time)
                 if streamlit:
-                    st.markdown(f"<span style='font-weight: bold;'>Execution time: {duration}</span>",
-                                unsafe_allow_html=True)
+                    st.markdown(f"<span style='font-weight: bold;'>{execuxtion_time}</span>", unsafe_allow_html=True)
 
 
         # Show final date separator line
-        print("*" * (NBCHAR + max_fun))
+        print("*" * (NBCHAR + max_fun + 9))
 
 
 def create_etl(host, port, database, username, password, engine, keep_connection):
