@@ -172,7 +172,7 @@ class ETL:
         dates_ranges = self.generate_date_range(start_date, stop_date, freq, dates, reverse, streamlit)
 
         # Total Iterations
-        total_iterations = len(dates_ranges) * len(function)
+        total_iterations = len(dates_ranges) * len(functions)
 
         print(f'Functions   : {functions}')
 
