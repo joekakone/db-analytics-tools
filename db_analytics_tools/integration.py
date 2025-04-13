@@ -149,7 +149,7 @@ class ETL:
             duration = datetime.datetime.now() - duration
             progression = i / total_iterations * 100
             progression = f"{progression:.2f}%"
-            execuxtion_time = f"Execution time: {duration} [{progression.ljust(7, ' ')}]"
+            execuxtion_time = f"Execution time: {duration} [{progression.rjust(7, ' ')}]"
             i += 1
             print(execuxtion_time)
             if streamlit:
@@ -188,7 +188,7 @@ class ETL:
         # Send query to the server
         for date in dates_ranges:
             # Show date separator line
-            print("*" * (NBCHAR + max_fun + 9))
+            print("*" * (NBCHAR + max_fun + 10))
             for function in functions:
                 # Pause
                 time.sleep(pause)
@@ -210,7 +210,7 @@ class ETL:
                 duration = datetime.datetime.now() - duration
                 progression = i / total_iterations * 100
                 progression = f"{progression:.2f}%"
-                execuxtion_time = f"Execution time: {duration} [{progression.ljust(7, ' ')}]"
+                execuxtion_time = f"Execution time: {duration} [{progression.rjust(7, ' ')}]"
                 i += 1
                 print(execuxtion_time)
                 if streamlit:
@@ -218,7 +218,7 @@ class ETL:
 
 
         # Show final date separator line
-        print("*" * (NBCHAR + max_fun + 9))
+        print("*" * (NBCHAR + max_fun + 10))
 
 
 def create_etl(host, port, database, username, password, engine, keep_connection):
