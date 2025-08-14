@@ -269,6 +269,26 @@ def create_client_from_config(config):
     return client
 
 
+def truncate_table(db_client, table_name, if_exists):
+    """
+    Truncate a database table.
+
+    This function removes all rows from the specified table in the database, effectively resetting it.
+
+    :param db_client: An instance of the `Client` class for connecting to the database.
+    :param table_name: The name of the table to truncate, in the format 'schema_name.table_name'.
+    """
+    
+    if if_exists == "truncate":
+        if db_client.engine == "postgres":
+            sql = f"TRUNCATE TABLE {table_name};"
+        elif db_client.engine == "sqlserver":
+            sql = f"TRUNCATE TABLE {table_name};"
+        else:
+            raise NotImplementedError("Engine not supported for truncate operation")
+        db_client.execute(query=sql)
+
+
 def dataframe_to_csv(dataframe, output_file, sep=";", encoding='latin_1'):
     """
     Save a Pandas DataFrame to a CSV file.
@@ -312,6 +332,9 @@ def dataframe_to_db(dataframe, db_client, destination_table, if_exists="append",
     :param chunksize: Number of rows to insert in each batch (default is 10000).
     """
     schema_name, table_name = destination_table.split(".")
+    
+    # if_exists == "truncate"
+    truncate_table(db_client, destination_table, if_exists)
 
     dataframe.to_sql(name=table_name,
                      schema=schema_name,
@@ -334,6 +357,9 @@ def csv_to_db(input_file, db_client, destination_table, sep=";", if_exists="appe
     :param chunksize: Number of rows to insert in each batch (default is 10000).
     """
     dataframe = pd.read_csv(input_file, sep=sep)
+    
+    # if_exists == "truncate"
+    truncate_table(db_client, destination_table, if_exists)
 
     dataframe_to_db(dataframe=dataframe,
                     db_client=db_client,
@@ -355,6 +381,9 @@ def db_to_db(query, source_client, destination_client, destination_table, if_exi
     :param chunksize: Number of rows to insert in each batch (default is 10000).
     """
     dataframe = source_client.read_sql(query)
+    
+    # if_exists == "truncate"
+    truncate_table(destination_client, destination_table, if_exists)
 
     dataframe_to_db(dataframe=dataframe,
                     db_client=destination_client,
