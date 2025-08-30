@@ -276,26 +276,36 @@ db_tools start --config config.json --address 127.0.0.1 --port 8050
 ```
 ![](https://raw.githubusercontent.com/joekakone/db-analytics-tools/master/db-analytics-tools-ui-screenshot.png)
 
+
 ## Interact with Airflow
 We also provide a class for interacting with the Apache Airflow REST API.
 ```py
 # Import Airflow class
 from db_analytics_tools.airflow import AirflowRESTAPI
 
-# Create an instance
-airflow = AirflowRESTAPI(AIRFLOW_API_URL, AIRFLOW_USERNAME, AIRFLOW_PASSWORD)
+# Airflow Config
+AIRFLOW_BASE_URL = "http://localhost:8080"
+AIRFLOW_API_ENDPOINT = "api/v2/"
+AIRFLOW_USERNAME = "airflow"
+AIRFLOW_PASSWORD = "airflow"
 
-# Get list of dags
+# Create an instance
+airflow = AirflowRESTAPI(AIRFLOW_BASE_URL, AIRFLOW_API_ENDPOINT, AIRFLOW_USERNAME, AIRFLOW_PASSWORD)
+
+# Get list of DAGs
 airflow.get_dags_list(include_all=False).head(10)
 
-# Get a dag details
+# Get a DAG details
 airflow.get_dag_details(dag_id="my_airflow_pipeline", include_tasks=False)
 
-# Get list of tasks of a dag
+# Get list of tasks of a DAG
 airflow.get_dag_tasks(dag_id="my_airflow_pipeline").head(10)
 
-# Trigger a Job
+# Trigger a DAG
 airflow.trigger_dag(dag_id="my_airflow_pipeline", start_date='2025-03-11', end_date='2025-03-12')
+
+# Backfill a DAG
+airflow.backfill_dag(dag_id="my_airflow_pipeline", start_date='2025-03-01', end_date='2025-03-12', reprocess_behavior="failed")
 ```
 
 
