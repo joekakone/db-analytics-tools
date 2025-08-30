@@ -308,6 +308,23 @@ airflow.trigger_dag(dag_id="my_airflow_pipeline", start_date='2025-03-11', end_d
 airflow.backfill_dag(dag_id="my_airflow_pipeline", start_date='2025-03-01', end_date='2025-03-12', reprocess_behavior="failed")
 ```
 
+## Forecasting
+
+```py
+# Import Forecast class
+from db_analytics_tools.learning import ForecastKPI
+
+# Create an instance
+forecast = ForecastKPI(historical_data=df, date_column="dt")
+
+# Summary
+print(forecast.describe())
+
+# Decomposition
+decomposition_result = forecast.decompose_time_series(kpi_name='active_1d', period=7, model='additive', plot=True)
+print(decomposition_result.trend.head())
+print(decomposition_result.seasonal.head())
+```
 
 ## Documentation
 Documentation available on [https://joekakone.github.io/db-analytics-tools](https://joekakone.github.io/db-analytics-tools).
