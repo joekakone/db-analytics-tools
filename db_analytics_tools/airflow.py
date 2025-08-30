@@ -356,7 +356,6 @@ class AirflowRESTAPI:
             "data_interval_start": start_dt.isoformat(),
             "data_interval_end": end_dt.isoformat(),
             "logical_date": end_dt.isoformat(),
-            "dry_run": False,  # Set to False to perform the actual clear
             "note": f"{self.username} triggered {dag_id} from {start_date} to {end_date}",
         }
 
