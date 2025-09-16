@@ -388,6 +388,11 @@ def truncate_table(db_client, table_name, if_exists):
         else:
             raise NotImplementedError("Engine not supported for truncate operation")
         db_client.execute(query=sql)
+        
+        # After truncation, set if_exists to "append"
+        if_exists = "append"
+
+    return if_exists
 
 
 def dataframe_to_csv(dataframe, output_file, sep=";", encoding='latin_1'):
@@ -435,7 +440,7 @@ def dataframe_to_db(dataframe, db_client, destination_table, if_exists="append",
     schema_name, table_name = destination_table.split(".")
     
     # if_exists == "truncate"
-    truncate_table(db_client, destination_table, if_exists)
+    if_exists = truncate_table(db_client, destination_table, if_exists)
 
     dataframe.to_sql(name=table_name,
                      schema=schema_name,
@@ -460,7 +465,7 @@ def csv_to_db(input_file, db_client, destination_table, sep=";", if_exists="appe
     dataframe = pd.read_csv(input_file, sep=sep)
     
     # if_exists == "truncate"
-    truncate_table(db_client, destination_table, if_exists)
+    if_exists = truncate_table(db_client, destination_table, if_exists)
 
     dataframe_to_db(dataframe=dataframe,
                     db_client=db_client,
@@ -484,7 +489,7 @@ def db_to_db(query, source_client, destination_client, destination_table, if_exi
     dataframe = source_client.read_sql(query)
     
     # if_exists == "truncate"
-    truncate_table(destination_client, destination_table, if_exists)
+    if_exists = truncate_table(destination_client, destination_table, if_exists)
 
     dataframe_to_db(dataframe=dataframe,
                     db_client=destination_client,
