@@ -227,6 +227,8 @@ class Client:
             query = """
                 select 
                     pid                                              session_id,
+                    null                                             resource_group_id,
+                    null                                             session_internal_id,
                     usename                                          username,
                     client_addr                                      client_address,
                     application_name,
