@@ -57,7 +57,7 @@ class Client:
 
         :param verbose: If set to 1, print a success message upon connection.
         """
-        if self.engine == "postgres":
+        if self.engine in ("postgres", "greenplum"):
             import psycopg2
             self.conn = psycopg2.connect(host=self.host,
                                          port=self.port,
@@ -108,7 +108,7 @@ class Client:
         Generate a connection URI based on the provided parameters.
         """
         password = urllib.parse.quote(self.password)
-        if self.engine == "postgres":
+        if self.engine in ("postgres", "greenplum"):
             self.uri = f"postgresql+psycopg2://{self.username}:{password}@{self.host}:{self.port}/{self.database}"
         elif self.engine == "sqlserver":
             driver = 'ODBC Driver 17 for SQL Server'
@@ -225,32 +225,58 @@ class Client:
         """
         if self.engine == "postgres":
             query = """
-                select pid         session_id,
-                    rsgid       resource_group_id,
-                    sess_id     session_internal_id,
-                    usename     username,
-                    client_addr client_address,
+                select 
+                    pid                                              session_id,
+                    usename                                          username,
+                    client_addr                                      client_address,
+                    application_name,
+                    query,
+                    state,
+                    wait_event is not null                           waiting,
+                    wait_event                                       waiting_reason,
+                    null                                             waiting_time_ms,
+                    query_start,
+                    backend_start,
+                    xact_start,
+                    state_change,
+                    null                                             cpu_time,
+                    extract(epoch from (now() - query_start)) * 1000 total_elapsed_time,
+                    null                                             reads_,
+                    null                                             writes_
+                from pg_stat_activity
+                where usename = current_user
+                order by query_start desc;
+            """
+        elif self.engine == "greenplum":
+            query = """
+                select 
+                    pid                                              session_id,
+                    rsgid                                            resource_group_id,
+                    sess_id                                          session_internal_id,
+                    usename                                          username,
+                    client_addr                                      client_address,
                     application_name,
                     query,
                     state,
                     waiting,
                     waiting_reason,
-                    null        waiting_time_ms,
+                    null                                             waiting_time_ms,
                     query_start,
                     backend_start,
                     xact_start,
                     state_change,
-                    null        cpu_time,
-                    null        total_elapsed_time,
-                    null        reads_,
-                    null        writes_
+                    null                                             cpu_time,
+                    extract(epoch from (now() - query_start)) * 1000 total_elapsed_time,
+                    null                                             reads_,
+                    null                                             writes_
                 from pg_stat_activity
                 where usename = current_user
                 order by query_start desc;
             """
         elif self.engine == "sqlserver":
             query = """
-                SELECT s.session_id                                             AS session_id,
+                SELECT 
+                    s.session_id                                             AS session_id,
                     NULL                                                     AS resource_group_id,
                     r.request_id                                             AS session_internal_id,
                     s.login_name                                             AS username,
@@ -290,7 +316,7 @@ class Client:
         :param session_id: The session ID of the query to cancel.
         :param verbose: If set to 1, print the execution time.
         """
-        if self.engine == "postgres":
+        if self.engine in ("postgres", "greenplum"):
             query = f"select pg_cancel_backend({session_id});"
         elif self.engine == "sqlserver":
             query = f"kill {session_id};"
@@ -381,7 +407,7 @@ def truncate_table(db_client, table_name, if_exists):
     """
     
     if if_exists == "truncate":
-        if db_client.engine == "postgres":
+        if db_client.engine in ("postgres", "greenplum"):
             sql = f"TRUNCATE TABLE {table_name};"
         elif db_client.engine == "sqlserver":
             sql = f"TRUNCATE TABLE {table_name};"
