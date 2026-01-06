@@ -415,7 +415,11 @@ def truncate_table(db_client, table_name, if_exists):
             sql = f"TRUNCATE TABLE {table_name};"
         else:
             raise NotImplementedError("Engine not supported for truncate operation")
-        db_client.execute(query=sql)
+        
+        try:
+            db_client.execute(query=sql)
+        except Exception as e: # If table does not exist or other error
+            raise Exception(f"Failed to truncate table {table_name}, maybe table doesn't exist: {e}")
         
         # After truncation, set if_exists to "append"
         if_exists = "append"
