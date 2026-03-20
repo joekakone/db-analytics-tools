@@ -61,8 +61,7 @@ class ETL:
             print(f'Iterations  : {len(dates_ranges)}')
 
             if streamlit:
-                st.markdown(f"<p>Date Range  : From {dates_ranges[0]} to {dates_ranges[-1]}</p>", unsafe_allow_html=True)
-                st.markdown(f"<p>Iterations  : {len(dates_ranges)}</p>", unsafe_allow_html=True)
+                st.write(f"<span style='font-family: Consolas;'>Date Range  : From {dates_ranges[0]} to {dates_ranges[-1]}<br>Iterations  : {len(dates_ranges)}</span>", unsafe_allow_html=True)
 
             return dates_ranges
 
@@ -71,8 +70,7 @@ class ETL:
             print('Iterations  : 1')
 
             if streamlit:
-                st.markdown(f"<p>Date        : {start_date}</p>", unsafe_allow_html=True)
-                st.markdown(f"<p>Iterations  : 1</p>", unsafe_allow_html=True)
+                st.write(f"<span style='font-family: Consolas;'>Date        : {start_date}<br>Iterations  : 1</span>", unsafe_allow_html=True)
 
             return [start_date]
 
@@ -98,8 +96,7 @@ class ETL:
         print(f'Iterations  : {len(dates_ranges)}')
 
         if streamlit:
-            st.markdown(f"<p>Date Range  : From {dates_ranges[0]} to {dates_ranges[-1]}</p>", unsafe_allow_html=True)
-            st.markdown(f"<p>Iterations  : {len(dates_ranges)}</p>", unsafe_allow_html=True)
+            st.write(f"<span style='font-family: Consolas;'>Date Range  : From {dates_ranges[0]} to {dates_ranges[-1]}<br>Iterations  : {len(dates_ranges)}</span>", unsafe_allow_html=True)
 
         return dates_ranges
 
@@ -124,19 +121,26 @@ class ETL:
         total_iterations = len(dates_ranges)
 
         print(f'Function    : {function}')
+        if streamlit:            
+            st.write(f"<span style='font-family: Consolas;'>Function    : {function}</span>", unsafe_allow_html=True)
 
         # Initialization
         i = 1
+
+        if streamlit:
+            streamlit_message = ""
+            streamlit_message_output = st.empty()
 
         # Send query to the server
         for date in dates_ranges:
             # Pause
             time.sleep(pause)
 
-            print(f"[Running Date: {date}] [Function: {function}] ", end="", flush=True)
+            execuxtion_time = f"[Running Date: {date}] [Function: {function}] "
+            print(execuxtion_time, end="", flush=True)
             if streamlit:
-                st.markdown(f"<span style='font-weight: bold;'>[Running Date: {date}] [Function: {function}] </span>",
-                            unsafe_allow_html=True)
+                streamlit_message += execuxtion_time
+                streamlit_message_output.write(f"<span style='font-family: Consolas;'>{streamlit_message}</span>", unsafe_allow_html=True)
 
             query = f"select {function}('{date}'::date);"
             duration = datetime.datetime.now()
@@ -150,10 +154,11 @@ class ETL:
             progression = i / total_iterations * 100
             progression = f"{progression:.2f}%"
             execuxtion_time = f"Execution time: {duration} [Prog.{progression.rjust(7, '.')}]"
-            i += 1
             print(execuxtion_time)
             if streamlit:
-                st.markdown(f"<span style='font-weight: bold;'>{execuxtion_time}</span>", unsafe_allow_html=True)
+                streamlit_message += execuxtion_time + "<br>"
+                streamlit_message_output.write(f"<span style='font-family: Consolas;'>{streamlit_message}</span>", unsafe_allow_html=True)
+            i += 1
 
     def run_multiple(self, functions, start_date=None, stop_date=None, freq=None, dates=None, pause=1, reverse=False, streamlit=False):
         """
@@ -175,6 +180,8 @@ class ETL:
         total_iterations = len(dates_ranges) * len(functions)
 
         print(f'Functions   : {functions}')
+        if streamlit:            
+            st.write(f"<span style='font-family: Consolas;'>Functions   : {functions}</span>", unsafe_allow_html=True)
 
         # Compute MAX Length of functions (Adjust display)
         max_fun = max(len(function) for function in functions)
@@ -182,19 +189,28 @@ class ETL:
         # Initialization
         i = 1
 
+        if streamlit:
+            streamlit_message = ""
+            streamlit_message_output = st.empty()
+
         # Send query to the server
         for date in dates_ranges:
             # Show date separator line
-            print("*" * (NBCHAR + max_fun + 15))
+            execuxtion_time = "*" * (NBCHAR + max_fun + 15)
+            print(execuxtion_time)
+            if streamlit:
+                streamlit_message += execuxtion_time + "<br>"
+                streamlit_message_output.write(f"<span style='font-family: Consolas;'>{streamlit_message}</span>", unsafe_allow_html=True)
+            
             for function in functions:
                 # Pause
                 time.sleep(pause)
 
-                print(f"[Running Date: {date}] [Function: {function.ljust(max_fun, '.')}] ", end="", flush=True)
+                execuxtion_time = f"[Running Date: {date}] [Function: {function.ljust(max_fun, '.')}] "
+                print(execuxtion_time, end="", flush=True)
                 if streamlit:
-                    st.markdown(
-                        f"<span style='font-weight: bold;'>[Running Date: {date}] [Function: {function}] </span>",
-                        unsafe_allow_html=True)
+                    streamlit_message += execuxtion_time
+                    streamlit_message_output.write(f"<span style='font-family: Consolas;'>{streamlit_message}</span>", unsafe_allow_html=True)
 
                 query = f"select {function}('{date}'::date);"
                 duration = datetime.datetime.now()
@@ -208,14 +224,19 @@ class ETL:
                 progression = i / total_iterations * 100
                 progression = f"{progression:.2f}%"
                 execuxtion_time = f"Execution time: {duration} [Prog.{progression.rjust(7, '.')}]"
-                i += 1
                 print(execuxtion_time)
                 if streamlit:
-                    st.markdown(f"<span style='font-weight: bold;'>{execuxtion_time}</span>", unsafe_allow_html=True)
+                    streamlit_message += execuxtion_time + "<br>"
+                    streamlit_message_output.write(f"<span style='font-family: Consolas;'>{streamlit_message}</span>", unsafe_allow_html=True)
+                i += 1
 
 
         # Show final date separator line
-        print("*" * (NBCHAR + max_fun + 15))
+        execuxtion_time = "*" * (NBCHAR + max_fun + 15)
+        print(execuxtion_time)
+        if streamlit:
+            streamlit_message += execuxtion_time + "<br>"
+            streamlit_message_output.write(f"<span style='font-family: Consolas;'>{streamlit_message}</span>", unsafe_allow_html=True)
 
 
 def create_etl(host, port, database, username, password, engine, keep_connection):
