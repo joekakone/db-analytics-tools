@@ -87,6 +87,7 @@
                     <a href="#about" class="hover:text-white transition">About</a>
                     <a href="#features" class="hover:text-white transition">Features</a>
                     <a href="#pricing" class="hover:text-white transition">Pricing</a>
+                    <a href="/docs" class="hover:text-white transition">Docs</a>
                     <a href="https://github.com/joekakone/db-analytics-tools" target="_blank" class="text-xl hover:text-white transition">
                         <i class="fab fa-github"></i>
                     </a>
@@ -161,13 +162,13 @@
                         </div>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-4">
-                    <div class="bg-blue-600/10 p-8 rounded-2xl border border-blue-500/20 text-center">
+                <div class="grid grid-cols-2 gap-4 items-stretch">
+                    <div class="bg-blue-600/10 p-8 rounded-2xl border border-blue-500/20 text-center flex flex-col items-center justify-center h-full">
                         <i class="fas fa-microchip text-3xl text-blue-500 mb-4"></i>
                         <h4 class="text-white font-bold mb-2">Automated ETL</h4>
                         <p class="text-xs text-slate-500">Scheduled extractions without the headache.</p>
                     </div>
-                    <div class="bg-emerald-600/10 p-8 rounded-2xl border border-emerald-500/20 text-center mt-8">
+                    <div class="bg-emerald-600/10 p-8 rounded-2xl border border-emerald-500/20 text-center flex flex-col items-center justify-center h-full lg:mt-8">
                         <i class="fas fa-shield-alt text-3xl text-emerald-500 mb-4"></i>
                         <h4 class="text-white font-bold mb-2">Secure Auth</h4>
                         <p class="text-xs text-slate-500">Robust secret management integrated.</p>
@@ -186,14 +187,22 @@
             </div>
             <div class="max-w-3xl mx-auto feature-card rounded-2xl overflow-hidden">
                 <div class="px-6 py-4 border-b border-slate-800 bg-slate-900/50 flex items-center justify-between">
-                    <span class="text-xs font-mono text-slate-400">Two lines to connect to any DB:</span>
+                    <span class="text-xs font-mono text-slate-400">Two instructions to connect to any DB:</span>
                     <span class="text-[10px] bg-blue-600/20 text-blue-400 px-2 py-0.5 rounded uppercase font-bold">Python</span>
                 </div>
-                <div class="p-8">
-                    <pre class="text-sm md:text-base code-font leading-relaxed overflow-x-auto">
-<span class="text-purple-400">import</span> db_analytics_tools <span class="text-purple-400">as</span> db
+                <div class="code-container">
+<pre class="text-sm md:text-base code-font leading-relaxed overflow-x-auto">
+    <span class="text-purple-400">import</span> db_analytics_tools <span class="text-purple-400">as</span> db
 
-client = db.<span class="text-yellow-400">Client</span>(host=HOST, port=PORT, database=DATABASE, username=USER, password=PASSWORD, engine=ENGINE)</pre>
+    client = db.<span class="text-yellow-400">Client</span>(
+        host=HOST, 
+        port=PORT, 
+        database=DATABASE, 
+        username=USER, 
+        password=PASSWORD, 
+        engine=ENGINE
+    )
+</pre>
                 </div>
             </div>
             <p class="text-center mt-8 text-sm text-slate-500">
@@ -209,13 +218,13 @@ client = db.<span class="text-yellow-400">Client</span>(host=HOST, port=PORT, da
                 <h2 class="text-3xl font-bold text-white mb-4">Core Components</h2>
                 <p class="text-slate-400 max-w-2xl mx-auto">Modular architecture designed to handle every step of your data pipeline.</p>
             </div>
-            <div class="grid md:grid-cols-3 gap-8">
+            <div class="grid md:grid-cols-2 lg:grid-cols-3 gap-8">
                 <!-- Client -->
                 <div class="feature-card p-8 rounded-2xl">
                     <div class="w-12 h-12 bg-blue-600/20 rounded-lg flex items-center justify-center text-blue-500 mb-6 text-xl">
                         <i class="fas fa-database"></i>
                     </div>
-                    <h3 class="text-xl font-bold text-white mb-3">Database Client</h3>
+                    <h3 class="text-xl font-bold text-white mb-3">DB Client</h3>
                     <p class="text-slate-400 text-sm leading-relaxed">
                         A high-level wrapper around SQL engines. Execute queries, manage sessions, and retrieve DataFrames with a single method call.
                     </p>
@@ -230,12 +239,42 @@ client = db.<span class="text-yellow-400">Client</span>(host=HOST, port=PORT, da
                         Automate the flow of data. Built-in functions for incremental loads, streaming extraction, and schema management.
                     </p>
                 </div>
+                <!-- DataViz -->
+                <div class="feature-card p-8 rounded-2xl">
+                    <div class="w-12 h-12 bg-pink-600/20 rounded-lg flex items-center justify-center text-pink-500 mb-6 text-xl">
+                        <i class="fas fa-chart-line"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">DataViz</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Turn raw data into insights. Integration with top charting libraries to generate professional reports directly from your datasets.
+                    </p>
+                </div>
+                <!-- ML -->
+                <div class="feature-card p-8 rounded-2xl">
+                    <div class="w-12 h-12 bg-orange-600/20 rounded-lg flex items-center justify-center text-orange-500 mb-6 text-xl">
+                        <i class="fas fa-brain"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">ML</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Standardized machine learning workflows. Simplified training, evaluation, and deployment of models within your data ecosystem.
+                    </p>
+                </div>
+                <!-- Airflow -->
+                <div class="feature-card p-8 rounded-2xl">
+                    <div class="w-12 h-12 bg-indigo-600/20 rounded-lg flex items-center justify-center text-indigo-500 mb-6 text-xl">
+                        <i class="fas fa-wind"></i>
+                    </div>
+                    <h3 class="text-xl font-bold text-white mb-3">Airflow</h3>
+                    <p class="text-slate-400 text-sm leading-relaxed">
+                        Native Airflow integration. Orchestrate your tasks with ease using our custom operators and REST API wrappers.
+                    </p>
+                </div>
                 <!-- UI -->
                 <div class="feature-card p-8 rounded-2xl">
                     <div class="w-12 h-12 bg-emerald-600/20 rounded-lg flex items-center justify-center text-emerald-500 mb-6 text-xl">
                         <i class="fas fa-desktop"></i>
                     </div>
-                    <h3 class="text-xl font-bold text-white mb-3">Analytics UI</h3>
+                    <h3 class="text-xl font-bold text-white mb-3">UI</h3>
                     <p class="text-slate-400 text-sm leading-relaxed">
                         A ready-to-use administration console built with Streamlit to monitor your pipelines and visualize your database health.
                     </p>
@@ -271,15 +310,18 @@ client = db.<span class="text-yellow-400">Client</span>(host=HOST, port=PORT, da
                     <div class="absolute -top-4 right-8 bg-blue-600 text-white text-[10px] font-black uppercase px-3 py-1 rounded-full">Custom</div>
                     <div class="mb-8">
                         <span class="text-xs font-bold uppercase tracking-widest text-purple-400">Enterprise</span>
-                        <h3 class="text-4xl font-extrabold text-white mt-2">Contact <span class="text-sm font-normal text-slate-500">for quote</span></h3>
+                        <h3 class="text-4xl font-extrabold text-white mt-2">From $100 <span class="text-sm font-normal text-slate-500">/ month</span></h3>
                     </div>
-                    <p class="text-slate-400 mb-8 flex-grow">Tailored solutions for teams requiring priority support, specialized integration and SLAs.</p>
+                    <p class="text-slate-400 mb-8 flex-grow">Tailored solutions for teams requiring priority support and specialized services.</p>
                     <ul class="space-y-4 mb-10 text-sm">
+                        <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-purple-500"></i> Advanced UI</li>
                         <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-purple-500"></i> Priority Feature Development</li>
                         <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-purple-500"></i> On-premise setup assistance</li>
                         <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-purple-500"></i> Dedicated Support (SLA)</li>
+                        <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-purple-500"></i> Assistance on ETL Development</li>
+                        <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-purple-500"></i> Airflow Deployment</li>
                     </ul>
-                    <a href="#" class="w-full py-3 text-center btn-primary text-white rounded-md font-semibold">Get Enterprise Details</a>
+                    <a href="#" class="w-full py-3 text-center btn-primary text-white rounded-md font-semibold">Contact us for a quote</a>
                 </div>
             </div>
         </div>
@@ -314,7 +356,7 @@ client = db.<span class="text-yellow-400">Client</span>(host=HOST, port=PORT, da
                         <span class="text-xl font-bold text-white tracking-tight">DB Analytics Tools</span>
                     </div>
                     <p class="text-slate-400 text-sm leading-relaxed mb-6 italic">
-                        "The quality assurance for Togo's economic elite and data professionals."
+                        "bring your Analytics to the next level"
                     </p>
                     <div class="flex gap-4 text-slate-500">
                         <a href="https://github.com/joekakone" class="hover:text-white transition"><i class="fab fa-github"></i></a>
@@ -327,10 +369,11 @@ client = db.<span class="text-yellow-400">Client</span>(host=HOST, port=PORT, da
                 <div>
                     <h4 class="text-white font-bold text-sm uppercase tracking-widest mb-6">Our Solutions</h4>
                     <ul class="space-y-4 text-sm text-slate-400">
-                        <li><a href="#" class="footer-link">Database Client</a></li>
-                        <li><a href="#" class="footer-link">ETL Framework</a></li>
-                        <li><a href="#" class="footer-link">Visualization Engine</a></li>
-                        <li><a href="#" class="footer-link">Airflow Orchestration</a></li>
+                        <li><a href="#" class="footer-link">data audit</a></li>
+                        <li><a href="#" class="footer-link">data warehouse development</a></li>
+                        <li><a href="#" class="footer-link">ETL development</a></li>
+                        <li><a href="#" class="footer-link">Airflow Deployment</a></li>
+                        <li><a href="#" class="footer-link">Data API development</a></li>
                     </ul>
                 </div>
 
