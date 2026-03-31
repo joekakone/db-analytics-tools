@@ -1,0 +1,358 @@
+<!DOCTYPE html>
+<html lang="en" class="scroll-smooth">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Documentation | DB Analytics Tools</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=Fira+Code:wght@400;500&display=swap');
+        
+        :root {
+            --bg-main: #0d1117; 
+            --bg-card: #161b22;
+            --border-color: #30363d;
+            --accent-blue: #2f81f7;
+        }
+
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-main);
+            color: #c9d1d9;
+        }
+
+        .glass-header {
+            background: rgba(13, 17, 23, 0.8);
+            backdrop-filter: blur(8px);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        /* Documentation Styles */
+        .prose h1 { color: white; font-size: 2.25rem; font-weight: 800; margin-bottom: 1.5rem; margin-top: 2rem; }
+        .prose h2 { color: white; font-size: 1.5rem; font-weight: 700; margin-bottom: 1.25rem; margin-top: 2.5rem; border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem; }
+        .prose h3 { color: white; font-size: 1.25rem; font-weight: 600; margin-bottom: 1rem; margin-top: 2rem; }
+        .prose p { margin-bottom: 1.25rem; line-height: 1.7; color: #8b949e; }
+        .prose ul { list-style-type: disc; padding-left: 1.5rem; margin-bottom: 1.25rem; color: #8b949e; }
+        .prose li { margin-bottom: 0.5rem; }
+        .prose strong { color: #f0f6fc; }
+        .prose a { color: var(--accent-blue); text-decoration: none; border-bottom: 1px solid transparent; transition: border 0.2s; }
+        .prose a:hover { border-bottom-color: var(--accent-blue); }
+
+        /* Table Styles */
+        .docs-table { width: 100%; border-collapse: collapse; margin-bottom: 2rem; font-size: 0.875rem; }
+        .docs-table th { background: #161b22; color: white; text-align: left; padding: 12px; border: 1px solid var(--border-color); }
+        .docs-table td { padding: 12px; border: 1px solid var(--border-color); color: #8b949e; }
+        .docs-table code { background: #21262d; padding: 2px 6px; border-radius: 4px; color: #79c0ff; font-family: 'Fira Code', monospace; font-size: 0.8rem; }
+
+        /* Code Block with Copy Button */
+        .code-container {
+            position: relative;
+            background: #010409;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            margin: 1.5rem 0;
+        }
+        .code-header {
+            display: flex;
+            justify-content: flex-end;
+            padding: 8px 12px;
+            background: #161b22;
+            border-bottom: 1px solid var(--border-color);
+            border-radius: 6px 6px 0 0;
+        }
+        .copy-btn {
+            background: transparent;
+            border: 1px solid var(--border-color);
+            color: #8b949e;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 12px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .copy-btn:hover {
+            color: white;
+            border-color: #8b949e;
+            background: #30363d;
+        }
+        .code-content {
+            padding: 16px;
+            overflow-x: auto;
+            font-family: 'Fira Code', monospace;
+            font-size: 13.5px;
+            line-height: 1.5;
+            color: #d1d5db;
+            white-space: pre;
+        }
+
+        .footer-link:hover { color: white; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+    <!-- NAVIGATION -->
+    <nav class="fixed w-full z-50 glass-header">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex items-center justify-between h-16">
+                <div class="flex items-center gap-3">
+                    <a href="index.html">
+                        <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-xs">DB</div>
+                    </a>
+                    <span class="text-lg font-semibold text-white hidden sm:block tracking-tight">DB Analytics Tools</span>
+                </div>
+                <div class="flex items-center space-x-6 text-sm font-medium">
+                    <a href="index.html#about" class="hover:text-white transition text-slate-400">About</a>
+                    <a href="index.html#features" class="hover:text-white transition text-slate-400">Features</a>
+                    <a href="docs.html" class="text-white transition">Docs</a>
+                    <a href="https://github.com/joekakone/db-analytics-tools" target="_blank" class="text-xl hover:text-white transition text-slate-400">
+                        <i class="fab fa-github"></i>
+                    </a>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- CONTENT -->
+    <main class="pt-24 pb-20 hero-gradient">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 prose">
+            
+            <h1>DB Analytics Tools</h1>
+            <p>
+                Databases Analytics Tools is a Python open source micro framework for data analytics. DB Analytics Tools is built on top of Psycopg2, Pyodbc, Pandas, Matplotlib and Scikit-learn. It helps data analysts to interact with data warehouses as traditional databases clients.
+            </p>
+
+            <h2>Why adopt DB Analytics Tools ?</h2>
+            <ul>
+                <li><strong>Easy to learn :</strong> It is high level API and doesn't require any special effort to learn.</li>
+                <li><strong>Real problems solver :</strong> It is designed to solve real life problems of the Data Analyst.</li>
+                <li><strong>All in One :</strong> Support queries, Data Integration, Analysis, Visualization and Machine Learning.</li>
+            </ul>
+
+            <h2>Core Components</h2>
+            <div class="overflow-x-auto">
+                <table class="docs-table">
+                    <thead>
+                        <tr>
+                            <th>#</th>
+                            <th>Component</th>
+                            <th>Description</th>
+                            <th>How to import</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        <tr>
+                            <td>0</td>
+                            <td>db</td>
+                            <td>Database Interactions (Client)</td>
+                            <td><code>import db_analytics_tools as db</code></td>
+                        </tr>
+                        <tr>
+                            <td>1</td>
+                            <td>dbi</td>
+                            <td>Data Integration & Data Engineering</td>
+                            <td><code>import db_analytics_tools.integration as dbi</code></td>
+                        </tr>
+                        <tr>
+                            <td>2</td>
+                            <td>dba</td>
+                            <td>Data Analysis</td>
+                            <td><code>import db_analytics_tools.analytics as dba</code></td>
+                        </tr>
+                        <tr>
+                            <td>3</td>
+                            <td>dbviz</td>
+                            <td>Data Visualization</td>
+                            <td><code>import db_analytics_tools.plotting as dbviz</code></td>
+                        </tr>
+                        <tr>
+                            <td>4</td>
+                            <td>dbml</td>
+                            <td>Machine Learning & MLOps</td>
+                            <td><code>import db_analytics_tools.learning as dbml</code></td>
+                        </tr>
+                    </tbody>
+                </table>
+            </div>
+
+            <h2>Install DB Analytics Tools</h2>
+            <h3>Dependencies</h3>
+            <p>DB Analytics Tools requires Python, Psycopg2, Pyodbc, Pandas, SQLAlchemy and Streamlit.</p>
+            
+            <div class="code-container">
+                <div class="code-header"><button class="copy-btn">Copy</button></div>
+                <div class="code-content">pip install db-analytics-tools</div>
+            </div>
+
+            <h2>Get Started</h2>
+            <h3>Setup client</h3>
+            <p>As traditional databases clients, we need to provide database server ip address and port and credentials.</p>
+            
+            <div class="code-container">
+                <div class="code-header"><button class="copy-btn">Copy</button></div>
+                <div class="code-content"># Import DB Analytics Tools
+import db_analytics_tools as db
+
+# Database Infos & Credentials
+ENGINE = "postgres"
+HOST = "localhost"
+PORT = "5432"
+DATABASE = "postgres"
+USER = "postgres"
+PASSWORD = "admin"
+
+# Setup client
+client = db.Client(host=HOST, port=PORT, database=DATABASE, username=USER, password=PASSWORD, engine=ENGINE)</div>
+            </div>
+
+            <h3>Data Query Language</h3>
+            <div class="code-container">
+                <div class="code-header"><button class="copy-btn">Copy</button></div>
+                <div class="code-content">query = """
+----- GET DATA -----
+select *
+from public.transactions
+order by transaction_id;
+"""
+
+dataframe = client.read_sql(query=query)
+print(dataframe.head())</div>
+            </div>
+
+            <div class="code-container">
+                <div class="code-content">   transaction_id  client_id product_name product_category  quantity  unitary_price  amount
+0               1        101    Product A       Category 1         5          100.0   500.0
+1               2        102    Product B       Category 2         3           50.0   150.0
+2               3        103    Product C       Category 1         2          200.0   400.0</div>
+            </div>
+
+            <h2>Implement SQL based ETL</h2>
+            <p>ETL API is in the integration module <code>db_analytics_tools.integration</code>.</p>
+            <div class="code-container">
+                <div class="code-header"><button class="copy-btn">Copy</button></div>
+                <div class="code-content"># Import Integration module
+import db_analytics_tools.integration as dbi
+
+# Setup ETL
+etl = dbi.ETL(client=client)</div>
+            </div>
+
+            <h2>Get started with the UI</h2>
+            <p>DB Analytics Tools UI is a web-based GUI. No need to code, all you need is a JSON config file.</p>
+            <div class="code-container">
+                <div class="code-header"><button class="copy-btn">Copy</button></div>
+                <div class="code-content">db_tools start --config config.json --address 127.0.0.1 --port 8050</div>
+            </div>
+            <img src="https://raw.githubusercontent.com/joekakone/db-analytics-tools/master/db-analytics-tools-ui-screenshot.png" alt="UI Screenshot" class="rounded-lg border border-slate-800 my-8">
+
+            <h2>Documentation</h2>
+            <p>Documentation available on <a href="https://joekakone.github.io/db-analytics-tools">https://joekakone.github.io/db-analytics-tools</a>.</p>
+
+            <h2>Maintainer</h2>
+            <p>
+                DB Analytics Tools is maintained by <strong>Joseph Konka</strong>. Joseph is a Data Science Professional with a focus on Python based tools.
+            </p>
+        </div>
+    </main>
+
+    <!-- SPONSOR SECTION -->
+    <section id="sponsor" class="py-20 bg-blue-600/5 border-t border-slate-800">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <div class="inline-block p-4 bg-white/5 rounded-full mb-6 text-pink-500 text-2xl">
+                <i class="fas fa-heart"></i>
+            </div>
+            <h2 class="text-3xl font-bold text-white mb-6">Support Open Source</h2>
+            <p class="text-slate-400 mb-10 leading-relaxed text-lg">
+                Your support helps us maintain the core library, improve documentation, and develop new connectors.
+            </p>
+            <div class="flex flex-wrap justify-center gap-6">
+                <a href="https://github.com/sponsors/joekakone" target="_blank" class="flex items-center gap-3 px-8 py-3 bg-pink-600 text-white rounded-full font-bold hover:bg-pink-700 transition">
+                    <i class="fab fa-github"></i> Sponsor on GitHub
+                </a>
+            </div>
+        </div>
+    </section>
+
+    <!-- FOOTER -->
+    <footer class="pt-24 pb-12 bg-[#010409] border-t border-slate-800">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
+                <div class="col-span-1 md:col-span-2 lg:col-span-1">
+                    <div class="flex items-center gap-3 mb-6">
+                        <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-xs">DB</div>
+                        <span class="text-xl font-bold text-white tracking-tight">DB Analytics Tools</span>
+                    </div>
+                    <p class="text-slate-400 text-sm leading-relaxed mb-6">Speed up your analytics workflows</p>
+                    <div class="flex gap-4 text-slate-500">
+                        <a href="https://github.com/joekakone" class="hover:text-white transition"><i class="fab fa-github"></i></a>
+                        <a href="#" class="hover:text-white transition"><i class="fab fa-linkedin-in"></i></a>
+                        <a href="#" class="hover:text-white transition"><i class="fab fa-twitter"></i></a>
+                    </div>
+                </div>
+
+                <div>
+                    <h4 class="text-white font-bold text-sm uppercase tracking-widest mb-6">Our Services</h4>
+                    <ul class="space-y-4 text-sm text-slate-400">
+                        <li><a href="#" class="footer-link">Data Audit</a></li>
+                        <li><a href="#" class="footer-link">Data Integration</a></li>
+                        <li><a href="#" class="footer-link">Airflow Deployment</a></li>
+                        <li><a href="#" class="footer-link">API Development</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-white font-bold text-sm uppercase tracking-widest mb-6">The Project</h4>
+                    <ul class="space-y-4 text-sm text-slate-400">
+                        <li><a href="index.html#about" class="footer-link">About Us</a></li>
+                        <li><a href="docs.html" class="footer-link">Documentation</a></li>
+                        <li><a href="#" class="footer-link">Contact</a></li>
+                    </ul>
+                </div>
+
+                <div>
+                    <h4 class="text-white font-bold text-sm uppercase tracking-widest mb-6">Newsletter</h4>
+                    <p class="text-sm text-slate-500 mb-6">Join our newsletter to get latest updates.</p>
+                    <div class="relative group">
+                        <input type="email" placeholder="Email" class="w-full bg-slate-900 border border-slate-800 rounded-full py-3 px-6 text-sm text-white focus:outline-none focus:border-blue-500 transition">
+                        <button class="absolute right-1 top-1 bottom-1 w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-900">
+                            <i class="fas fa-arrow-right"></i>
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <div class="pt-8 border-t border-slate-900 flex flex-col lg:flex-row items-center justify-between gap-6 text-[13px] text-slate-500 text-center lg:text-left">
+                <div>© 2026 Lomé, Togo. Built by <strong>Joseph Konka</strong>.</div>
+                <div class="flex gap-6">
+                    <a href="#" class="hover:text-white transition">Privacy Policy</a>
+                    <a href="#" class="hover:text-white transition">Terms</a>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <script>
+        // Copy functionality
+        document.querySelectorAll('.copy-btn').forEach(btn => {
+            btn.addEventListener('click', () => {
+                const code = btn.parentElement.nextElementSibling.innerText;
+                const el = document.createElement('textarea');
+                el.value = code;
+                document.body.appendChild(el);
+                el.select();
+                document.execCommand('copy');
+                document.body.removeChild(el);
+                
+                const originalText = btn.innerText;
+                btn.innerText = 'Copied!';
+                btn.classList.add('text-green-500');
+                
+                setTimeout(() => {
+                    btn.innerText = originalText;
+                    btn.classList.remove('text-green-500');
+                }, 2000);
+            });
+        });
+    </script>
+</body>
+</html>
