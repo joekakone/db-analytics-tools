@@ -80,7 +80,7 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex items-center justify-between h-16">
                 <div class="flex items-center gap-3">
-                    <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-xs">DB</div>
+                 <a href="#"><div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-xs">DB</div></a>
                     <span class="text-lg font-semibold text-white hidden sm:block tracking-tight">DB Analytics Tools</span>
                 </div>
                 <div class="flex items-center space-x-6 text-sm font-medium">
@@ -98,7 +98,7 @@
 
     <!-- HERO SECTION -->
     <section id="hero" class="relative pt-32 pb-20 hero-gradient border-b border-slate-800">
-        <div class="max-w-7xl mx-auto px-4 text-center">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <div class="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-400 text-xs font-medium mb-6">
                 <span class="relative flex h-2 w-2">
                     <span class="animate-ping absolute inline-flex h-full w-full rounded-full bg-blue-400 opacity-75"></span>
@@ -131,7 +131,7 @@
                         <div class="w-3 h-3 rounded-full bg-yellow-500/50"></div>
                         <div class="w-3 h-3 rounded-full bg-green-500/50"></div>
                     </div>
-                    <span class="ml-4 italic">dashboard_preview.py</span>
+                    <span class="ml-4">db_tools start --config config.json --address 127.0.0.1 --port 8050</span>
                 </div>
                 <img src="https://raw.githubusercontent.com/joekakone/db-analytics-tools/master/db-analytics-tools-ui-screenshot.png" alt="UI Screenshot" class="w-full opacity-90">
             </div>
@@ -140,9 +140,11 @@
 
     <!-- ABOUT SECTION -->
     <section id="about" class="py-24 border-b border-slate-800">
-        <div class="max-w-7xl mx-auto px-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid lg:grid-cols-2 gap-16 items-center">
-                <div>
+                
+                <!-- Left Content -->
+                <div class="flex flex-col">
                     <h2 class="text-sm font-bold text-blue-500 uppercase tracking-widest mb-4">About the Project</h2>
                     <h3 class="text-3xl md:text-4xl font-bold text-white mb-6 leading-tight">Empowering Data Teams with Simplicity</h3>
                     <p class="text-slate-400 mb-6 leading-relaxed">
@@ -162,25 +164,30 @@
                         </div>
                     </div>
                 </div>
-                <div class="grid grid-cols-2 gap-4 items-stretch">
-                    <div class="bg-blue-600/10 p-8 rounded-2xl border border-blue-500/20 text-center flex flex-col items-center justify-center h-full">
-                        <i class="fas fa-microchip text-3xl text-blue-500 mb-4"></i>
-                        <h4 class="text-white font-bold mb-2">Automated ETL</h4>
-                        <p class="text-xs text-slate-500">Scheduled extractions without the headache.</p>
-                    </div>
-                    <div class="bg-emerald-600/10 p-8 rounded-2xl border border-emerald-500/20 text-center flex flex-col items-center justify-center h-full lg:mt-8">
-                        <i class="fas fa-shield-alt text-3xl text-emerald-500 mb-4"></i>
-                        <h4 class="text-white font-bold mb-2">Secure Auth</h4>
-                        <p class="text-xs text-slate-500">Robust secret management integrated.</p>
+
+                <!-- Right Content -->
+                <div class="w-full lg:pl-12">
+                    <div class="flex flex-col gap-4">
+                        <div class="bg-blue-600/10 p-6 rounded-2xl border border-blue-500/20 text-center flex flex-col items-center justify-center">
+                            <i class="fas fa-microchip text-2xl text-blue-500 mb-3"></i>
+                            <h4 class="text-white font-bold mb-1 text-lg">Automated ETL</h4>
+                            <p class="text-xs text-slate-500 max-w-[280px]">Scheduled extractions without the headache.</p>
+                        </div>
+
+                        <div class="bg-emerald-600/10 p-6 rounded-2xl border border-emerald-500/20 text-center flex flex-col items-center justify-center">
+                            <i class="fas fa-shield-alt text-2xl text-emerald-500 mb-3"></i>
+                            <h4 class="text-white font-bold mb-1 text-lg">Secure Auth</h4>
+                            <p class="text-xs text-slate-500 max-w-[280px]">Robust secret management integrated.</p>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
     </section>
 
-    <!-- QUICK START / CONNECTION SECTION -->
+    <!-- QUICK START SECTION -->
     <section id="quickstart" class="py-24 bg-[#010409]">
-        <div class="max-w-7xl mx-auto px-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-12">
                 <h2 class="text-3xl font-bold text-white mb-4">Instant Connectivity</h2>
                 <p class="text-slate-400">Stop wasting time with complex boilerplate. Connect and query in seconds.</p>
@@ -190,30 +197,29 @@
                     <span class="text-xs font-mono text-slate-400">Two instructions to connect to any DB:</span>
                     <span class="text-[10px] bg-blue-600/20 text-blue-400 px-2 py-0.5 rounded uppercase font-bold">Python</span>
                 </div>
-                <div class="code-container">
-<pre class="text-sm md:text-base code-font leading-relaxed overflow-x-auto">
-    <span class="text-purple-400">import</span> db_analytics_tools <span class="text-purple-400">as</span> db
+                <div class="p-6 overflow-x-auto">
+                    <pre class="text-sm md:text-base code-font leading-relaxed">
+<span class="text-purple-400">import</span> db_analytics_tools <span class="text-purple-400">as</span> db
 
-    client = db.<span class="text-yellow-400">Client</span>(
-        host=HOST, 
-        port=PORT, 
-        database=DATABASE, 
-        username=USER, 
-        password=PASSWORD, 
-        engine=ENGINE
-    )
-</pre>
+client = db.<span class="text-yellow-400">Client</span>(
+    host=HOST, 
+    port=PORT, 
+    database=DATABASE, 
+    username=USER, 
+    password=PASSWORD, 
+    engine=ENGINE
+)</pre>
                 </div>
             </div>
             <p class="text-center mt-8 text-sm text-slate-500">
-                Supports PostgreSQL, MySQL, Oracle, SQL Server, and more out of the box.
+                Supports PostgreSQL, Greenplum and SQL Server.
             </p>
         </div>
     </section>
 
     <!-- CORE COMPONENTS SECTION -->
     <section id="features" class="py-24 border-t border-slate-800">
-        <div class="max-w-7xl mx-auto px-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
                 <h2 class="text-3xl font-bold text-white mb-4">Core Components</h2>
                 <p class="text-slate-400 max-w-2xl mx-auto">Modular architecture designed to handle every step of your data pipeline.</p>
@@ -285,43 +291,55 @@
 
     <!-- PRICING SECTION -->
     <section id="pricing" class="py-24 border-t border-slate-800">
-        <div class="max-w-7xl mx-auto px-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="text-center mb-16">
                 <h2 class="text-3xl font-bold text-white mb-4">Pricing Plans</h2>
                 <p class="text-slate-400">Choose the right path for your project or organization.</p>
             </div>
-            <div class="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto">
+            
+            <!-- Use items-stretch to force cards to same height -->
+            <div class="grid md:grid-cols-2 gap-8 max-w-5xl mx-auto items-stretch">
                 <!-- Community -->
                 <div class="feature-card p-10 rounded-2xl flex flex-col h-full border-blue-500/30">
-                    <div class="mb-8">
-                        <span class="text-xs font-bold uppercase tracking-widest text-blue-400">Individual & OSS</span>
-                        <h3 class="text-4xl font-extrabold text-white mt-2">$0 <span class="text-sm font-normal text-slate-500">/ forever</span></h3>
+                    <div>
+                        <div class="mb-8">
+                            <span class="text-xs font-bold uppercase tracking-widest text-blue-400">Individual & OSS</span>
+                            <h3 class="text-4xl font-extrabold text-white mt-2">$0 <span class="text-sm font-normal text-slate-500">/ forever</span></h3>
+                        </div>
+                        <p class="text-slate-400 mb-8">Perfect for individual contributors, researchers, and small open-source projects.</p>
+                        <ul class="space-y-4 mb-10 text-sm">
+                            <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-emerald-500"></i> Full framework access</li>
+                            <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-emerald-500"></i> MIT Licensed</li>
+                            <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-emerald-500"></i> Community Support</li>
+                        </ul>
                     </div>
-                    <p class="text-slate-400 mb-8 flex-grow">Perfect for individual contributors, researchers, and small open-source projects.</p>
-                    <ul class="space-y-4 mb-10 text-sm">
-                        <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-emerald-500"></i> Full framework access</li>
-                        <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-emerald-500"></i> MIT Licensed</li>
-                        <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-emerald-500"></i> Community Support</li>
-                    </ul>
-                    <a href="https://github.com/joekakone/db-analytics-tools" class="w-full py-3 text-center border border-slate-700 rounded-md hover:bg-slate-800 transition font-semibold">Install via PyPI</a>
+                    <!-- mt-auto pushes this to the bottom -->
+                    <div class="mt-auto">
+                        <a href="https://github.com/joekakone/db-analytics-tools" class="block w-full py-3 text-center border border-slate-700 rounded-md hover:bg-slate-800 transition font-semibold">Install via PyPI</a>
+                    </div>
                 </div>
+
                 <!-- Enterprise -->
                 <div class="feature-card p-10 rounded-2xl flex flex-col h-full bg-slate-900/40 relative">
                     <div class="absolute -top-4 right-8 bg-blue-600 text-white text-[10px] font-black uppercase px-3 py-1 rounded-full">Custom</div>
-                    <div class="mb-8">
-                        <span class="text-xs font-bold uppercase tracking-widest text-purple-400">Enterprise</span>
-                        <h3 class="text-4xl font-extrabold text-white mt-2">From $100 <span class="text-sm font-normal text-slate-500">/ month</span></h3>
+                    <div>
+                        <div class="mb-8">
+                            <span class="text-xs font-bold uppercase tracking-widest text-purple-400">Enterprise</span>
+                            <h3 class="text-4xl font-extrabold text-white mt-2">From $100 <span class="text-sm font-normal text-slate-500">/ month</span></h3>
+                        </div>
+                        <p class="text-slate-400 mb-8">Tailored solutions for teams requiring priority support and specialized services.</p>
+                        <ul class="space-y-4 mb-10 text-sm">
+                            <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-purple-500"></i> Advanced UI</li>
+                            <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-purple-500"></i> Priority Feature Development</li>
+                            <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-purple-500"></i> On-premise setup assistance</li>
+                            <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-purple-500"></i> Dedicated Support (SLA)</li>
+                            <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-purple-500"></i> Airflow Deployment</li>
+                        </ul>
                     </div>
-                    <p class="text-slate-400 mb-8 flex-grow">Tailored solutions for teams requiring priority support and specialized services.</p>
-                    <ul class="space-y-4 mb-10 text-sm">
-                        <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-purple-500"></i> Advanced UI</li>
-                        <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-purple-500"></i> Priority Feature Development</li>
-                        <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-purple-500"></i> On-premise setup assistance</li>
-                        <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-purple-500"></i> Dedicated Support (SLA)</li>
-                        <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-purple-500"></i> Assistance on ETL Development</li>
-                        <li class="flex items-center gap-3 text-slate-300"><i class="fas fa-check text-purple-500"></i> Airflow Deployment</li>
-                    </ul>
-                    <a href="#" class="w-full py-3 text-center btn-primary text-white rounded-md font-semibold">Contact us for a quote</a>
+                    <!-- mt-auto pushes this to the bottom -->
+                    <div class="mt-auto">
+                        <a href="#" class="block w-full py-3 text-center btn-primary text-white rounded-md font-semibold">Contact us for a quote</a>
+                    </div>
                 </div>
             </div>
         </div>
@@ -329,7 +347,7 @@
 
     <!-- SPONSOR SECTION -->
     <section id="sponsor" class="py-20 bg-blue-600/5 border-t border-slate-800">
-        <div class="max-w-4xl mx-auto px-4 text-center">
+        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
             <div class="inline-block p-4 bg-white/5 rounded-full mb-6 text-pink-500 text-2xl">
                 <i class="fas fa-heart"></i>
             </div>
@@ -347,16 +365,15 @@
 
     <!-- FOOTER -->
     <footer class="pt-24 pb-12 bg-[#010409] border-t border-slate-800">
-        <div class="max-w-7xl mx-auto px-4">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-12 mb-16">
-                <!-- Branding -->
                 <div class="col-span-1 md:col-span-2 lg:col-span-1">
                     <div class="flex items-center gap-3 mb-6">
                         <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-xs">DB</div>
                         <span class="text-xl font-bold text-white tracking-tight">DB Analytics Tools</span>
                     </div>
-                    <p class="text-slate-400 text-sm leading-relaxed mb-6 italic">
-                        "bring your Analytics to the next level"
+                    <p class="text-slate-400 text-sm leading-relaxed mb-6">
+                        Speed up your analytics workflows
                     </p>
                     <div class="flex gap-4 text-slate-500">
                         <a href="https://github.com/joekakone" class="hover:text-white transition"><i class="fab fa-github"></i></a>
@@ -365,30 +382,25 @@
                     </div>
                 </div>
 
-                <!-- Solutions -->
                 <div>
-                    <h4 class="text-white font-bold text-sm uppercase tracking-widest mb-6">Our Solutions</h4>
+                    <h4 class="text-white font-bold text-sm uppercase tracking-widest mb-6">Our Services</h4>
                     <ul class="space-y-4 text-sm text-slate-400">
-                        <li><a href="#" class="footer-link">data audit</a></li>
-                        <li><a href="#" class="footer-link">data warehouse development</a></li>
-                        <li><a href="#" class="footer-link">ETL development</a></li>
+                        <li><a href="#" class="footer-link">Data Audit</a></li>
+                        <li><a href="#" class="footer-link">Data Integration</a></li>
                         <li><a href="#" class="footer-link">Airflow Deployment</a></li>
-                        <li><a href="#" class="footer-link">Data API development</a></li>
+                        <li><a href="#" class="footer-link">API Development</a></li>
                     </ul>
                 </div>
 
-                <!-- Project -->
                 <div>
                     <h4 class="text-white font-bold text-sm uppercase tracking-widest mb-6">The Project</h4>
                     <ul class="space-y-4 text-sm text-slate-400">
                         <li><a href="#about" class="footer-link">About Us</a></li>
-                        <li><a href="#" class="footer-link">Our Expertise</a></li>
-                        <li><a href="#" class="footer-link">Documentation</a></li>
+                        <li><a href="/docs" class="footer-link">Documentation</a></li>
                         <li><a href="#" class="footer-link">Contact</a></li>
                     </ul>
                 </div>
 
-                <!-- Newsletter/CTA -->
                 <div>
                     <h4 class="text-white font-bold text-sm uppercase tracking-widest mb-6">Newsletter</h4>
                     <p class="text-sm text-slate-500 mb-6">Join our newsletter to get latest updates on data engineering.</p>
