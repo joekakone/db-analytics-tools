@@ -7,12 +7,12 @@ with open("README.md", "r") as f:
 
 setup(
     name="db_analytics_tools",
-    version="0.1.8.7",
-    url="https://joekakone.github.io/#projects",
+    version="0.1.8.8",
+    url="https://joekakone.github.io/db-analytics-tools",
     download_url="https://github.com/joekakone/db-analytics-tools",
     project_urls={
         "Bug Tracker": "https://github.com/joekakone/db-analytics-tools/issues",
-        "Documentation": "https://joekakone.github.io/db-analytics-tools",
+        "Documentation": "https://joekakone.github.io/db-analytics-tools/docs.html",
         "Source Code": "https://github.com/joekakone/db-analytics-tools",
     },
     license="MIT",
@@ -35,7 +35,8 @@ setup(
     packages=find_packages(),
     entry_points={
         "console_scripts": [
-            "db_tools=db_analytics_tools.webapp:main"
+            "db_tools=db_analytics_tools.webapp:main",
+            "db_tools_v2=db_analytics_tools.webapp_v2:main",
         ],
     },
 )

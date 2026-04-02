@@ -5,3 +5,4 @@ SQLAlchemy>=2.0.29
 streamlit>=1.32.2
 matplotlib>=3.4.3
 requests>=2.32.3
+openpyxl>=3.1.5

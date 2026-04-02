@@ -74,12 +74,16 @@ class ETL:
 
             return [start_date]
 
-        # Generate continuous dates with formatted strings
-        dates_ranges = pd.date_range(start=start_date, end=stop_date, freq='D').strftime('%Y-%m-%d').tolist()
-
         # Manage Frequency
-        if freq.upper() not in ['D', 'M', 'W']:
+        if freq.upper() not in ['H', 'D', 'M', 'W']:
             raise NotImplementedError("Frequency not supported!")
+
+        # Generate continuous dates with formatted strings
+        if freq.upper() == 'H':
+            stop_date_ajusted = pd.to_datetime(stop_date) + pd.Timedelta(hours=23)
+            dates_ranges = pd.date_range(start=start_date, end=stop_date_ajusted, freq='H').strftime('%Y-%m-%d %H:%M:%S').tolist()
+        else:
+            dates_ranges = pd.date_range(start=start_date, end=stop_date, freq='D').strftime('%Y-%m-%d').tolist()
 
         if freq.upper() == 'M':
             # Keep only dates that represent the first day of each month

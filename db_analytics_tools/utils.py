@@ -13,9 +13,12 @@ import datetime
 import json
 
 import pandas as pd
+from sqlalchemy import create_engine, text
+
 
 # Frequeny
 FREQ = {
+    "Hourly": "h",
     "Daily": "d",
     "Weekly": "w",
     "Monthly": "m"
@@ -75,6 +78,7 @@ class Client:
             raise NotImplementedError("Engine not supported")
         # Create cursor
         self.cursor = self.conn.cursor()
+        
         if verbose == 1:
             print('Connection established successfully !')
 
@@ -86,7 +90,7 @@ class Client:
         :raises Exception: If the connection test fails.
         """
         try:
-            self.connect(verbose=1)
+            self.connect(verbose=verbose)
             if not self.keep_connection:
                 self.close()
         except Exception:
@@ -100,6 +104,7 @@ class Client:
         """
         self.cursor.close()
         self.conn.close()
+        
         if verbose == 1:
             print('Connection closed successfully!')
 
@@ -115,6 +120,11 @@ class Client:
             self.uri = f"mssql+pyodbc://{self.username}:{password}@{self.host}:{self.port}/{self.database}?driver={driver}"
         else:
             raise NotImplementedError("Engine not supported")
+        
+        # For high volume tables
+        # self.engine = engine = create_engine(self.uri)
+        engine = create_engine(self.uri)
+        self.conn = engine.connect().execution_options(stream_results=True)
 
     def execute(self, query, verbose=0):
         """
@@ -123,28 +133,36 @@ class Client:
         :param query: The SQL query to execute.
         :param verbose: If set to 1, print the execution time.
         """
-        duration = datetime.datetime.now()
+        start_time = datetime.datetime.now()
+
         if not self.keep_connection:
             self.connect()
         self.cursor.execute(query)
         self.conn.commit()
         if not self.keep_connection:
             self.close()
-        duration = datetime.datetime.now() - duration
+        duration = datetime.datetime.now() - start_time
+        
         if verbose == 1:
             print(f'Execution time: {duration}')
 
-    def read_sql(self, query, verbose=0):
+    def read_sql(self, query, chunksize=None, verbose=0):
         """
         Execute an SQL query and return the result as a Pandas DataFrame.
 
         :param query: The SQL query to execute.
+        :param chunksize: If specified, return an iterator where chunksize is the number of rows to include in each chunk.
         :param verbose: If set to 1, print the execution time.
         :return: A Pandas DataFrame containing the query result.
         """
-        duration = datetime.datetime.now()
-        dataframe = pd.read_sql(query, self.uri)
-        duration = datetime.datetime.now() - duration
+        start_time = datetime.datetime.now()
+
+        if chunksize:
+            dataframe = pd.read_sql(sql=text(query), con=self.conn, chunksize=chunksize)
+        else:
+            dataframe = pd.read_sql(sql=query, con=self.uri)
+        duration = datetime.datetime.now() - start_time
+        
         if verbose == 1:
             print(f'Execution time: {duration}')
 
@@ -159,7 +177,12 @@ class Client:
         :param level: The level of privileges to grant, which can be one of: 'select', 'update', 'insert', 'delete', 'all'.
         :param verbose: If set to 1, print the execution time.
         """
-        assert level in ("select", "update", "insert", "delete", "all")
+        levels = ("select", "update", "insert", "delete", "all")
+        try:
+            assert level in levels
+        except Exception as e:
+            print(f"Not support value for level '{level}'. Excepted {levels}")
+        
         mapping = {
             "select": "select",
             "update": "update",
@@ -169,14 +192,16 @@ class Client:
         }
         query = "grant " + mapping[level] + " on " + table_name + " to " + username + ";"
 
-        duration = datetime.datetime.now()
+        start_time = datetime.datetime.now()
+
         if not self.keep_connection:
             self.connect()
         self.cursor.execute(query)
         self.conn.commit()
         if not self.keep_connection:
             self.close()
-        duration = datetime.datetime.now() - duration
+        duration = datetime.datetime.now() - start_time
+        
         if verbose == 1:
             print(f'Execution time: {duration}')
 
@@ -199,17 +224,261 @@ class Client:
         }
         query = "revoke " + mapping[level] + " from " + username + " on " + table_name + ";"
 
-        duration = datetime.datetime.now()
+        start_time = datetime.datetime.now()
+
         if not self.keep_connection:
             self.connect()
         self.cursor.execute(query)
         self.conn.commit()
         if not self.keep_connection:
             self.close()
-        duration = datetime.datetime.now() - duration
+        duration = datetime.datetime.now() - start_time
+        
         if verbose == 1:
             print(f'Execution time: {duration}')
             
+    def sample_table(self, table_name, n=100):
+        """
+        Retrieve a sample of rows from a specified database table.
+
+        :param table_name: The name of the database table from which to retrieve a sample.
+        :param n: The number of rows to include in the sample (default is 100).
+        :return: A Pandas DataFrame containing the sampled rows from the specified table.
+        """
+        if self.engine in ("postgres", "greenplum"):
+            query = f"select * from {table_name} limit {n};"
+        elif self.engine == "sqlserver":
+            query = f"SELECT TOP({n}) * FROM {table_name};"
+        else:
+            raise NotImplementedError("Engine not supported")
+        
+        return self.read_sql(query)
+
+    def get_tables(self, include_all=False, include_size=False):
+        """
+        Retrieves and displays the list of tables in the connected database.
+
+        This method queries the database to fetch the names of all tables, along with their schema and size information.
+
+        - For PostgreSQL, it retrieves table information from `pg_catalog.pg_tables` and calculates table sizes using `pg_total_relation_size`.
+        - For SQL Server, it retrieves table information from `sys.tables` and calculates table sizes using `sys.dm_db_partition_stats`.
+
+        :raises NotImplementedError: If the database engine is not supported.
+        :return: A DataFrame containing table details.
+        """
+        if self.engine in ("postgres", "greenplum"):
+            query = f"""
+                with _sq as (
+                    select a.relid, b.tableowner, b.schemaname, b.tablename, {'pg_relation_size(a.relid)' if include_size else 'null'} size_bytes
+                    from pg_catalog.pg_statio_user_tables a
+                            join pg_catalog.pg_tables b
+                                on a.relname = b.tablename and a.schemaname = b.schemaname
+                    where 1 = 1
+                    and {'b.tableowner = current_user' if not include_all else '1 = 1'}
+                    and tablename not like '%%_prt_%%' -- Ignore partitions
+                ),
+                    _partitions as (
+                        select parent.relname,
+                                count(*)                                                               partition_count,
+                                min(case when child.relname not like '%%extra%%' then child.relname end) min_partition,
+                                max(case when child.relname not like '%%extra%%' then child.relname end) max_partition
+                        from pg_inherits
+                                join pg_class parent on pg_inherits.inhparent = parent.oid
+                                join pg_class child on pg_inherits.inhrelid = child.oid
+                        group by 1
+                    )
+                select schemaname,
+                    tablename,
+                    schemaname || '.' || tablename                                   full_tablename,
+                    tableowner,
+                    {'pg_size_pretty(size_bytes)' if include_size else 'null'}        size,
+                    {'size_bytes::int8' if include_size else 'null'}                  size_bytes,
+                    coalesce(partition_count, 0)                                     partition_count,
+                    coalesce(min_partition, tablename)                               min_partition,
+                    coalesce(max_partition, tablename)                               max_partition,
+                    'drop table if exists ' || schemaname || '.' || tablename || ';' drop_query
+                from _sq a
+                        left join _partitions b on a.tablename = b.relname
+                order by partition_count desc, schemaname, tablename;
+            """
+        elif self.engine == "sqlserver":
+            query = """
+                SELECT 
+                    s.name + '.' + t.name AS table_name,
+                    SUM(p.reserved_page_count) * 8 * 1024 AS size_bytes
+                FROM sys.tables t
+                         JOIN sys.schemas s ON t.schema_id = s.schema_id
+                         JOIN sys.dm_db_partition_stats p ON t.object_id = p.object_id
+                GROUP BY s.name, t.name
+                ORDER BY size_bytes DESC;
+            """
+        else:
+            raise NotImplementedError("Engine not supported")
+        
+        return self.read_sql(query)
+
+    def get_views(self, include_all=False):
+        """
+        Retrieves and displays the list of views in the connected database.
+
+        This method queries the database to fetch the names of all views, along with their schema and size information.
+
+        - For PostgreSQL, it retrieves table information from `pg_catalog.pg_views`.
+        - For SQL Server, it retrieves table information from `sys.tables` and calculates table sizes using `sys.dm_db_partition_stats`.
+
+        :raises NotImplementedError: If the database engine is not supported.
+        :return: A DataFrame containing table details.
+        """
+        if self.engine in ("postgres", "greenplum"):
+            query = f"""
+                select schemaname,
+                    viewname,
+                    schemaname || '.' || viewname full_viewname,
+                    viewowner,
+                    definition
+                from pg_catalog.pg_views
+                where schemaname not in ('pg_catalog', 'information_schema') -- Exclude system views
+                    and {'viewowner = current_user' if not include_all else '1 = 1'}
+                order by schemaname, viewname
+            """
+        elif self.engine == "sqlserver":
+            query = """
+                SELECT 
+                    s.name + '.' + t.name AS table_name,
+                    SUM(p.reserved_page_count) * 8 * 1024 AS size_bytes
+                FROM sys.tables t
+                         JOIN sys.schemas s ON t.schema_id = s.schema_id
+                         JOIN sys.dm_db_partition_stats p ON t.object_id = p.object_id
+                GROUP BY s.name, t.name
+                ORDER BY size_bytes DESC;
+            """
+        else:
+            raise NotImplementedError("Engine not supported")
+
+        return self.read_sql(query)
+
+    def get_functions(self, include_all=False):
+        """
+        Retrieves and displays the list of functions in the connected database.
+
+        This method queries the database to fetch the names of all functions, along with their schema and size information.
+
+        - For PostgreSQL, it retrieves table information from `pg_catalog.pg_proc`.
+        - For SQL Server, it retrieves table information from `sys.tables` and calculates table sizes using `sys.dm_db_partition_stats`.
+
+        :raises NotImplementedError: If the database engine is not supported.
+        :return: A DataFrame containing table details.
+        """
+        if self.engine == "postgres":
+            query = f"""
+                select n.nspname                        schemaname,
+                    p.proname                        functionname,
+                    n.nspname || '.' || p.proname    full_functionname,
+                    pg_get_userbyid(p.proowner)      functionowner,
+                    pg_get_function_result(p.oid)    result_type,
+                    pg_get_function_arguments(p.oid) argument_types,
+                    case
+                        when p.prokind = 'f' then 'function'
+                        when p.prokind = 'p' then 'procedure'
+                        when p.prokind = 'a' then 'aggregate'
+                        when p.prokind = 'w' then 'window'
+                        end                          type,
+                    l.lanname                        language,
+                    p.prosrc                         source_code
+                from pg_catalog.pg_proc p
+                        left join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+                        left join pg_catalog.pg_language l on l.oid = p.prolang
+                where n.nspname not in ('pg_catalog', 'information_schema')
+                    and {'pg_get_userbyid(p.proowner) = current_user' if not include_all else '1 = 1'}
+                order by schemaname, functionname
+            """
+        elif self.engine == "greenplum":
+            query = f"""
+                select n.nspname                        schemaname,
+                    p.proname                        functionname,
+                    n.nspname || '.' || p.proname    full_functionname,
+                    pg_get_userbyid(p.proowner)      functionowner,
+                    pg_get_function_result(p.oid)    result_type,
+                    pg_get_function_arguments(p.oid) argument_types,
+                    case
+                        when p.proisagg then 'aggregate'
+                        when p.proiswindow then 'window'
+                        else 'function'
+                        end                          type,
+                    l.lanname                        language,
+                    p.prosrc                         source_code
+                from pg_catalog.pg_proc p
+                        left join pg_catalog.pg_namespace n on n.oid = p.pronamespace
+                        left join pg_catalog.pg_language l on l.oid = p.prolang
+                where n.nspname not in ('pg_catalog', 'information_schema')
+                    and {'pg_get_userbyid(p.proowner) = current_user' if not include_all else '1 = 1'}
+                order by schemaname, functionname
+            """
+        elif self.engine == "sqlserver":
+            query = """
+                SELECT 
+                    s.name + '.' + t.name AS table_name,
+                    SUM(p.reserved_page_count) * 8 * 1024 AS size_bytes
+                FROM sys.tables t
+                         JOIN sys.schemas s ON t.schema_id = s.schema_id
+                         JOIN sys.dm_db_partition_stats p ON t.object_id = p.object_id
+                GROUP BY s.name, t.name
+                ORDER BY size_bytes DESC;
+            """
+        else:
+            raise NotImplementedError("Engine not supported")
+
+        return self.read_sql(query)
+
+    def get_roles(self, include_groups=False):
+        """
+        Retrieves and displays the list of roles in the connected database.
+
+        This method queries the database to fetch the names of all roles, along with their schema and size information.
+
+        - For PostgreSQL, it retrieves table information from `pg_catalog.pg_roles`.
+        - For SQL Server, it retrieves table information from `sys.tables` and calculates table sizes using `sys.dm_db_partition_stats`.
+
+        :raises NotImplementedError: If the database engine is not supported.
+        :return: A DataFrame containing table details.
+        """
+        if self.engine in ("postgres", "greenplum"):
+            query = f"""
+                select rolname        rolename,
+                    rolsuper       is_superuser,
+                    rolcreaterole  can_create_role,
+                    rolcreatedb    can_create_db,
+                    rolcanlogin    is_user,
+                    rolreplication is_replication_role,
+                    rolconnlimit   connection_limit,
+                    rolvaliduntil  valid_until,
+                    array(
+                            select b.rolname
+                            from pg_catalog.pg_auth_members m
+                                        join pg_catalog.pg_roles b on m.roleid = b.oid
+                            where m.member = r.oid
+                        )          member_of
+                from pg_catalog.pg_roles r
+                where 1 = 1
+                    and {'rolcanlogin' if not include_groups else '1 = 1'}
+                order by is_user desc, rolename
+            """
+        elif self.engine == "sqlserver":
+            query = """
+                SELECT 
+                    s.name + '.' + t.name AS table_name,
+                    SUM(p.reserved_page_count) * 8 * 1024 AS size_bytes
+                FROM sys.tables t
+                         JOIN sys.schemas s ON t.schema_id = s.schema_id
+                         JOIN sys.dm_db_partition_stats p ON t.object_id = p.object_id
+                GROUP BY s.name, t.name
+                ORDER BY size_bytes DESC;
+            """
+        else:
+            raise NotImplementedError("Engine not supported")
+
+        return self.read_sql(query)
+
     def show_sessions(self, include_all=False):
         """
         Retrieves and displays the list of active database sessions for the current user.
@@ -217,14 +486,14 @@ class Client:
         This method queries the database to fetch session details, including session ID, 
         user name, client address, application name, query status, and timestamps.
 
-        - For PostgreSQL, it retrieves detailed session information from `pg_stat_activity`.
+        - For PostgreSQL, it retrieves detailed session information from `pg_catalog.pg_stat_activity`.
         - For SQL Server, it retrieves running requests from `sys.dm_exec_requests`.
 
         :raises NotImplementedError: If the database engine is not supported.
         :return: A DataFrame containing session details.
         """
         if self.engine == "postgres":
-            query = """
+            query = f"""
                 select 
                     pid                                              session_id,
                     null                                             resource_group_id,
@@ -245,12 +514,13 @@ class Client:
                     extract(epoch from (now() - query_start)) * 1000 total_elapsed_time,
                     null                                             reads_,
                     null                                             writes_
-                from pg_stat_activity
-                where usename = current_user
+                from pg_catalog.pg_stat_activity
+                where 1 = 1
+                    and {'usename = current_user' if not include_all else '1 = 1'}
                 order by query_start desc;
             """
         elif self.engine == "greenplum":
-            query = """
+            query = f"""
                 select 
                     pid                                              session_id,
                     rsgid                                            resource_group_id,
@@ -271,8 +541,9 @@ class Client:
                     extract(epoch from (now() - query_start)) * 1000 total_elapsed_time,
                     null                                             reads_,
                     null                                             writes_
-                from pg_stat_activity
-                where usename = current_user
+                from pg_catalog.pg_stat_activity
+                where 1 = 1
+                    and {'usename = current_user' if not include_all else '1 = 1'}
                 order by query_start desc;
             """
         elif self.engine == "sqlserver":
@@ -299,18 +570,30 @@ class Client:
                     r.writes                                                 AS writes_
                 FROM sys.dm_exec_sessions s
                         LEFT JOIN sys.dm_exec_requests r ON s.session_id = r.session_id
-                WHERE s.login_name = SUSER_NAME()
+                WHERE 1 = 1
+                    AND {'s.login_name = SUSER_NAME()' if not include_all else '1 = 1'}
                 ORDER BY r.start_time DESC;
             """
         else:
             raise NotImplementedError("Engine not supported")
-        if include_all:
-            return self.read_sql(query)
         
-        subset = ["session_id", "resource_group_id","username", "client_address","application_name",
-                  "query","state","waiting","waiting_reason","query_start","backend_start"]
-        return self.read_sql(query)[subset]
-    
+        return self.read_sql(query)
+
+    def cancel_all_queries(self, verbose=0):
+        """
+        Cancel all running queries.
+
+        :param verbose: If set to 1, print the execution time.
+        """
+        if self.engine in ("postgres", "greenplum"):
+            query = "select pg_terminate_backend(pid) from pg_catalog.pg_stat_activity where usename = current_user;"
+        elif self.engine == "sqlserver":
+            query = "kill (select session_id from sys.dm_exec_sessions where login_name = SUSER_NAME());"
+        else:
+            raise NotImplementedError("Engine not supported")
+
+        self.execute(query, verbose=verbose)
+
     def cancel_query(self, session_id, verbose=0):
         """
         Cancel a running query based on its session ID.
@@ -319,14 +602,14 @@ class Client:
         :param verbose: If set to 1, print the execution time.
         """
         if self.engine in ("postgres", "greenplum"):
-            query = f"select pg_cancel_backend({session_id});"
+            query = f"select pg_terminate_backend({session_id});"
         elif self.engine == "sqlserver":
             query = f"kill {session_id};"
         else:
             raise NotImplementedError("Engine not supported")
 
         self.execute(query, verbose=verbose)
-    
+
     def cancel_locked_queries(self, verbose=0):
         """
         Cancel a locked queries.
@@ -427,7 +710,7 @@ def truncate_table(db_client, table_name, if_exists):
     return if_exists
 
 
-def dataframe_to_csv(dataframe, output_file, sep=";", encoding='latin_1'):
+def dataframe_to_csv(dataframe, output_file, sep=";", encoding='latin_1', mode='w', verbose=0):
     """
     Save a Pandas DataFrame to a CSV file.
 
@@ -436,13 +719,21 @@ def dataframe_to_csv(dataframe, output_file, sep=";", encoding='latin_1'):
     :param sep: The delimiter to use between fields in the CSV file.
     :param encoding: The character encoding for the CSV file (default is 'latin_1').
     """
+    
+    start_time = datetime.datetime.now()
+    
     dataframe.to_csv(output_file,
                      sep=sep,
                      encoding=encoding,
-                     index=False)
+                     index=False,
+                     mode=mode)
+
+    duration = datetime.datetime.now() - start_time
+    if verbose == 1:
+        print(f'Execution time: {duration}')
 
 
-def db_to_csv(query, db_client, output_file, sep=";", encoding='latin_1'):
+def db_to_csv(query, db_client, output_file, sep=";", encoding='latin_1', chunksize=None, verbose=0):
     """
     Execute a SQL query and save the result to a CSV file.
 
@@ -452,14 +743,42 @@ def db_to_csv(query, db_client, output_file, sep=";", encoding='latin_1'):
     :param sep: The delimiter to use between fields in the CSV file.
     :param encoding: The character encoding for the CSV file (default is 'latin_1').
     """
-    dataframe = db_client.read_sql(query)
-    dataframe_to_csv(dataframe=dataframe,
-                     output_file=output_file,
-                     sep=sep,
-                     encoding=encoding)
+
+    start_time = datetime.datetime.now()
+    total_rows = 0
+
+    if chunksize:
+        chunks = db_client.read_sql(query, chunksize=chunksize)
+
+        for i, chunk in enumerate(chunks):
+            mode = "w" if i == 0 else "a"
+            dataframe_to_csv(dataframe=chunk,
+                            output_file=output_file,
+                            sep=sep,
+                            encoding=encoding,
+                            mode=mode)
+
+            total_rows += len(chunk)
+            
+            duration = datetime.datetime.now() - start_time
+            if verbose == 1:
+                print(f"Step : {str(i).rjust(3, '0')}...\tProgression : {total_rows:,} lines...\tElapsed : {duration}")
+
+            # Free memory
+            del chunk
+    else:
+        dataframe = db_client.read_sql(query)
+        dataframe_to_csv(dataframe=dataframe,
+                         output_file=output_file,
+                         sep=sep,
+                         encoding=encoding)
+
+    duration = datetime.datetime.now() - start_time
+    if verbose == 1:
+        print(f'Execution time: {duration}')
 
 
-def dataframe_to_db(dataframe, db_client, destination_table, if_exists="append", chunksize=10000):
+def dataframe_to_db(dataframe, db_client, destination_table, if_exists="append", chunksize=None, verbose=0):
     """
     Load data from a Pandas DataFrame to a database table.
 
@@ -470,6 +789,8 @@ def dataframe_to_db(dataframe, db_client, destination_table, if_exists="append",
     :param chunksize: Number of rows to insert in each batch (default is 10000).
     """
     schema_name, table_name = destination_table.split(".")
+    
+    start_time = datetime.datetime.now()
     
     # if_exists == "truncate"
     if_exists = truncate_table(db_client, destination_table, if_exists)
@@ -482,8 +803,12 @@ def dataframe_to_db(dataframe, db_client, destination_table, if_exists="append",
                      method="multi",
                      if_exists=if_exists)
 
+    duration = datetime.datetime.now() - start_time
+    if verbose == 1:
+        print(f'Execution time: {duration}')
 
-def csv_to_db(input_file, db_client, destination_table, sep=";", if_exists="append", chunksize=10000):
+
+def csv_to_db(input_file, db_client, destination_table, sep=";", if_exists="append", chunksize=None, verbose=0):
     """
     Load data from a CSV file to a database table.
 
@@ -494,6 +819,9 @@ def csv_to_db(input_file, db_client, destination_table, sep=";", if_exists="appe
     :param if_exists: Action to take if the table already exists ('fail', 'replace', or 'append').
     :param chunksize: Number of rows to insert in each batch (default is 10000).
     """
+    
+    start_time = datetime.datetime.now()
+
     dataframe = pd.read_csv(input_file, sep=sep)
     
     # if_exists == "truncate"
@@ -502,12 +830,15 @@ def csv_to_db(input_file, db_client, destination_table, sep=";", if_exists="appe
     dataframe_to_db(dataframe=dataframe,
                     db_client=db_client,
                     destination_table=destination_table,
-                    sep=sep,
                     if_exists=if_exists,
                     chunksize=chunksize)
 
+    duration = datetime.datetime.now() - start_time
+    if verbose == 1:
+        print(f'Execution time: {duration}')
 
-def db_to_db(query, source_client, destination_client, destination_table, if_exists="append", chunksize=10000):
+
+def db_to_db(query, source_client, destination_client, destination_table, if_exists="append", chunksize=None, verbose=0):
     """
     Transfer data from one database to another using an SQL query.
 
@@ -517,20 +848,55 @@ def db_to_db(query, source_client, destination_client, destination_table, if_exi
     :param destination_table: Destination table in the format 'schema_name.table_name'.
     :param if_exists: Action to take if the destination table already exists ('fail', 'replace', or 'append').
     :param chunksize: Number of rows to insert in each batch (default is 10000).
+    :param verbose: If set to 1, print the execution time.
     """
-    dataframe = source_client.read_sql(query)
-    
-    # if_exists == "truncate"
-    if_exists = truncate_table(destination_client, destination_table, if_exists)
 
-    dataframe_to_db(dataframe=dataframe,
-                    db_client=destination_client,
-                    destination_table=destination_table,
-                    if_exists=if_exists,
-                    chunksize=chunksize)
+    start_time = datetime.datetime.now()
+    total_rows = 0
+
+    if chunksize:
+        chunks = source_client.read_sql(query, chunksize=chunksize)
+
+        for i, chunk in enumerate(chunks):
+            current_if_exists = if_exists if i == 0 else "append"
+            dataframe_to_db(dataframe=chunk,
+                            db_client=destination_client,
+                            destination_table=destination_table,
+                            if_exists=current_if_exists,
+                            chunksize=chunksize)
+
+            total_rows += len(chunk)
+            
+            duration = datetime.datetime.now() - start_time
+            if verbose == 1:
+                print(f"Step : {str(i).rjust(3, '0')}...\tProgression : {total_rows:,} lines...\tElapsed : {duration}")
+
+            # Free memory
+            del chunk
+    else:
+        dataframe = source_client.read_sql(query)
+
+        # if_exists == "truncate"
+        if_exists = truncate_table(destination_client, destination_table, if_exists)
+
+        dataframe_to_db(dataframe=dataframe,
+                        db_client=destination_client,
+                        destination_table=destination_table,
+                        if_exists=if_exists,
+                        chunksize=chunksize)
+
+    duration = datetime.datetime.now() - start_time
+    if verbose == 1:
+        print(f'Execution time: {duration}')
 
 
 def get_config(path):
+    """
+    Load configuration from a config file
+
+    :param path: Path config file path
+    :return: dict
+    """
     with open(path, "r") as f:
         config = json.load(f)
 
