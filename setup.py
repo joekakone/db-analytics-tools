@@ -7,7 +7,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="db_analytics_tools",
-    version="0.1.8.9",
+    version="0.1.8.10",
     url="https://joekakone.github.io/db-analytics-tools",
     download_url="https://github.com/joekakone/db-analytics-tools",
     project_urls={
@@ -31,7 +31,7 @@ setup(
         "matplotlib>=3.4.3",
         "statsmodels>=0.13.5"
     ],
-    python_requires=">=3.10",
+    python_requires=">=3.9",
     packages=find_packages(),
     entry_points={
         "console_scripts": [

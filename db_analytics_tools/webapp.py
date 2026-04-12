@@ -84,7 +84,7 @@ class UI:
         st.set_page_config(
             page_title=f"Job Executor - {self.app_name}", 
             page_icon=self.app_favicon, 
-            layout="centered", 
+            layout="wide", 
             initial_sidebar_state="auto"
         )
         st.title(self.app_name)
@@ -155,18 +155,32 @@ class UI:
             print(selected_pipeline)
         else: # Dropdown for pipeline selection
             selected_pipeline = st.selectbox("Pipeline", list(self.pipelines.keys()))
-
-        # Date selection
-        start_date = st.date_input("Start Date")
-        stop_date = st.date_input("Stop Date")
-
-        # Frequency selection
-        selected_freq = db.utils.FREQ[st.selectbox("Frequency", db.utils.FREQ.keys())]
+        
+        col1, col2, col3 = st.columns(3)
+        with col1:
+            start_date = st.date_input("Start Date")
+            direction = st.selectbox("Execution Order", ["Normal", "Reverse"])
+        with col2:
+            stop_date = st.date_input("Stop Date")
+            pause = st.number_input("Pause (secondes)", min_value=0, value=0)
+        with col3:
+            freq_label = st.selectbox("Frequency", list(db.utils.FREQ.keys()))
+            freq = db.utils.FREQ[freq_label]
 
         # Run Button
-        if st.button("Run"):
+        if st.button("Run", type="primary", width='stretch'):
+            
+            reverse = (direction == "Reverse")
+            
             try:
-                result = self.process_function(selected_pipeline, start_date, stop_date, selected_freq)
+                result = self.process_function(
+                    selected_pipeline,
+                    start_date=start_date,
+                    stop_date=stop_date,
+                    freq=freq,
+                    reverse=reverse,
+                    pause=pause
+                )
                 st.write("Result:")
                 st.write(result)
             except OperationalError:
@@ -174,7 +188,7 @@ class UI:
             except Exception as e:
                 st.error(f"An error occurred: {e}")
 
-    def process_function(self, selected_pipeline, start_date, stop_date, freq):
+    def process_function(self, selected_pipeline, start_date, stop_date, freq, reverse=False, pause=0, streamlit=True):
         """
         Executes the selected pipeline with the provided parameters.
 
@@ -203,12 +217,12 @@ class UI:
         if pipeline_type == "single":
             st.session_state.etl.run(
                 function=pipeline_functions[0], start_date=start_date, 
-                stop_date=stop_date, freq=freq, reverse=False, streamlit=True
+                stop_date=stop_date, freq=freq, reverse=reverse, pause=pause, streamlit=streamlit
             )
         elif pipeline_type == "multiple":
             st.session_state.etl.run_multiple(
                 functions=pipeline_functions, start_date=start_date, 
-                stop_date=stop_date, freq=freq, reverse=False, streamlit=True
+                stop_date=stop_date, freq=freq, reverse=reverse, pause=pause, streamlit=streamlit
             )
         else:
             raise NotImplementedError("Pipeline type not supported.")
