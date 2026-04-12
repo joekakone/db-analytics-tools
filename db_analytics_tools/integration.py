@@ -146,7 +146,7 @@ class ETL:
                 streamlit_message += execuxtion_time
                 streamlit_message_output.write(f"<span style='font-family: Consolas;'>{streamlit_message}</span>", unsafe_allow_html=True)
 
-            query = f"select {function}('{date}'::date);"
+            query = f"select {function}('{date}'::timestamp);" if freq.upper() == 'H' else f"select {function}('{date}'::date);"
             duration = datetime.datetime.now()
 
             try:
@@ -216,7 +216,7 @@ class ETL:
                     streamlit_message += execuxtion_time
                     streamlit_message_output.write(f"<span style='font-family: Consolas;'>{streamlit_message}</span>", unsafe_allow_html=True)
 
-                query = f"select {function}('{date}'::date);"
+                query = f"select {function}('{date}'::timestamp);" if freq.upper() == 'H' else f"select {function}('{date}'::date);"
                 duration = datetime.datetime.now()
 
                 try:

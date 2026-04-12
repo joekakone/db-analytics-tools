@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Documentation | DB Analytics Tools</title>
+    <title>DB Analytics Tools | Documentation</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <style>
@@ -114,14 +114,19 @@
         </div>
     </nav>
 
-    <!-- CONTENT -->
-    <main class="pt-24 pb-20 hero-gradient">
-        <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8 prose">
-            
-            <h1>DB Analytics Tools</h1>
-            <p>
+    <!-- HEADER SECTION -->
+    <section id="hero" class="pt-32 pb-8 border-b border-slate-800 bg-slate-900/20">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center">
+            <h1 class="text-4xl md:text-5xl font-extrabold text-white mb-4">Documentation</h1>
+            <p class="text-slate-400 max-w-4xl mx-auto text-lg mb-12">
                 Databases Analytics Tools is a Python open source micro framework for data analytics. DB Analytics Tools is built on top of Psycopg2, Pyodbc, Pandas, Matplotlib and Scikit-learn. It helps data analysts to interact with data warehouses as traditional databases clients.
             </p>
+        </div>
+    </section>
+
+    <!-- CONTENT -->
+    <main class="pt-8 pb-20 hero-gradient">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 prose">
 
             <h2>Why adopt DB Analytics Tools ?</h2>
             <ul>
@@ -178,7 +183,17 @@
 
             <h2>Install DB Analytics Tools</h2>
             <h3>Dependencies</h3>
-            <p>DB Analytics Tools requires Python, Psycopg2, Pyodbc, Pandas, SQLAlchemy and Streamlit.</p>
+            <p>DB Analytics Tools requires the following dependencies:</p>
+            <ul>
+                <li>Python</li>
+                <li>Psycopg2</li>
+                <li>Pyodbc</li>
+                <li>Pandas</li>
+                <li>SQLAlchemy</li>
+                <li>Streamlit</li>
+            </ul>
+
+            <p>DB Analytics Tools can easily installed using pip.</p>
             
             <div class="code-container">
                 <div class="code-header"><button class="copy-btn">Copy</button></div>
@@ -205,6 +220,49 @@ PASSWORD = "admin"
 # Setup client
 client = db.Client(host=HOST, port=PORT, database=DATABASE, username=USER, password=PASSWORD, engine=ENGINE)</div>
             </div>
+            <p>Note : DB Analytics Tools supports Postgres and SQL Server.</p>
+
+            <h3>Data Definition Language</h3>
+            <div class="code-container">
+                <div class="code-header"><button class="copy-btn">Copy</button></div>
+                <div class="code-content">query = """
+----- CREATE TABLE -----
+drop table if exists public.transactions;
+create table public.transactions (
+    transaction_id integer primary key,
+    client_id integer,
+    product_name varchar(255),
+    product_category varchar(255),
+    quantity integer,
+    unitary_price numeric,
+    amount numeric
+);
+"""
+
+client.execute(query=query)</div>
+            </div>
+
+            <h3>Data Manipulation Language</h3>
+            <div class="code-container">
+                <div class="code-header"><button class="copy-btn">Copy</button></div>
+                <div class="code-content">query = """
+----- POPULATE TABLE -----
+insert into public.transactions (transaction_id, client_id, product_name, product_category, quantity, unitary_price, amount)
+values
+	(1,101,'Product A','Category 1',5,100,500),
+	(2,102,'Product B','Category 2',3,50,150),
+	(3,103,'Product C','Category 1',2,200,400),
+	(4,102,'Product A','Category 1',7,100,700),
+	(5,105,'Product B','Category 2',4,50,200),
+	(6,101,'Product C','Category 1',1,200,200),
+	(7,104,'Product A','Category 1',6,100,600),
+	(8,103,'Product B','Category 2',2,50,100),
+	(9,103,'Product C','Category 1',8,200,1600),
+	(10,105,'Product A','Category 1',3,100,300);
+"""
+
+client.execute(query=query)</div>
+            </div>
 
             <h3>Data Query Language</h3>
             <div class="code-container">
@@ -227,8 +285,22 @@ print(dataframe.head())</div>
 2               3        103    Product C       Category 1         2          200.0   400.0</div>
             </div>
 
+            <h2>Manage sessions</h2>
+            <p>You can simply show current queries for current user.</p>
+            <div class="code-container">
+                <div class="code-header"><button class="copy-btn">Copy</button></div>
+                <div class="code-content"># You can simply show current queries for current user.
+client.show_sessions()
+
+# You can cancel query by its session_id.
+client.cancel_query(10284)
+
+# You can go further cancelling on lock
+client.cancel_locked_queries()</div>
+            </div>
+
             <h2>Implement SQL based ETL</h2>
-            <p>ETL API is in the integration module <code>db_analytics_tools.integration</code>.</p>
+            <p>ETL API is in the integration module <code>db_analytics_tools.integration</code>. Let's import it ans create an ETL object.</p>
             <div class="code-container">
                 <div class="code-header"><button class="copy-btn">Copy</button></div>
                 <div class="code-content"># Import Integration module
@@ -238,20 +310,181 @@ import db_analytics_tools.integration as dbi
 etl = dbi.ETL(client=client)</div>
             </div>
 
+            <p>ETLs for DB Analytics Tools consists in functions with date parameters. Everything is done in one place i.e on the database. So first create a function on the database like this :</p>
+            <div class="code-container">
+                <div class="code-header"><button class="copy-btn">Copy</button></div>
+                <div class="code-content">query = """
+----- CREATE FUNCTION ON DB -----
+create or replace function public.fn_test(rundt date) returns integer
+language plpgsql
+as
+$$
+begin
+	--- DEBUG MESSAGE ---
+	raise notice 'rundt : %', rundt;
+
+	--- EXTRACT ---
+
+	--- TRANSFORM ---
+
+	--- LOAD ---
+
+	return 0;
+end;
+$$;
+"""
+
+client.execute(query=query)</div>
+            </div>
+
+            <h3>Run a function</h3>
+            <p>Then ETL function can easily be run using the ETL class via the method <code>ETL.run()</code></p>
+            <div class="code-container">
+                <div class="code-header"><button class="copy-btn">Copy</button></div>
+                <div class="code-content"># ETL Function
+FUNCTION = "public.fn_test"
+
+# Dates to run
+START = "2023-08-01"
+STOP = "2023-08-05"
+
+# Run ETL
+etl.run(function=FUNCTION, start_date=START, stop_date=STOP, freq="d", reverse=False)</div>
+            </div>
+
+            <div class="code-container">
+                <div class="code-content">Function    : public.fn_test
+Date Range  : From 2023-08-01 to 2023-08-05
+Iterations  : 5
+[Runing Date: 2023-08-01] [Function: public.fn_test] Execution time: 0:00:00.122600
+[Runing Date: 2023-08-02] [Function: public.fn_test] Execution time: 0:00:00.049324
+[Runing Date: 2023-08-03] [Function: public.fn_test] Execution time: 0:00:00.049409
+[Runing Date: 2023-08-04] [Function: public.fn_test] Execution time: 0:00:00.050019
+[Runing Date: 2023-08-05] [Function: public.fn_test] Execution time: 0:00:00.108267</div>
+            </div>
+            
+            <h3>Run several functions</h3>
+            <p>Most of time, several ETL must be run and DB Analytics Tools supports running functions as pipelines.</p>
+            <div class="code-container">
+                <div class="code-header"><button class="copy-btn">Copy</button></div>
+                <div class="code-content"># ETL Functions
+FUNCTIONS = [
+    "public.fn_test",
+    "public.fn_test_long",
+    "public.fn_test_very_long"
+]
+
+# Dates to run
+START = "2023-08-01"
+STOP = "2023-08-05"
+
+# Run ETLs
+etl.run_multiple(functions=FUNCTIONS, start_date=START, stop_date=STOP, freq="d", reverse=False)</div>
+            </div>
+
+            <div class="code-container">
+                <div class="code-content">Functions   : ['public.fn_test', 'public.fn_test_long', 'public.fn_test_very_long']
+Date Range  : From 2023-08-01 to 2023-08-05
+Iterations  : 5
+*********************************************************************************************
+[Runing Date: 2023-08-01] [Function: public.fn_test..........] Execution time: 0:00:00.110408
+[Runing Date: 2023-08-01] [Function: public.fn_test_long.....] Execution time: 0:00:00.112078
+[Runing Date: 2023-08-01] [Function: public.fn_test_very_long] Execution time: 0:00:00.092423
+*********************************************************************************************
+[Runing Date: 2023-08-02] [Function: public.fn_test..........] Execution time: 0:00:00.111153
+[Runing Date: 2023-08-02] [Function: public.fn_test_long.....] Execution time: 0:00:00.111395
+[Runing Date: 2023-08-02] [Function: public.fn_test_very_long] Execution time: 0:00:00.110814
+*********************************************************************************************
+[Runing Date: 2023-08-03] [Function: public.fn_test..........] Execution time: 0:00:00.111044
+[Runing Date: 2023-08-03] [Function: public.fn_test_long.....] Execution time: 0:00:00.123229
+[Runing Date: 2023-08-03] [Function: public.fn_test_very_long] Execution time: 0:00:00.078432
+*********************************************************************************************
+[Runing Date: 2023-08-04] [Function: public.fn_test..........] Execution time: 0:00:00.127839
+[Runing Date: 2023-08-04] [Function: public.fn_test_long.....] Execution time: 0:00:00.111339
+[Runing Date: 2023-08-04] [Function: public.fn_test_very_long] Execution time: 0:00:00.140669
+*********************************************************************************************
+[Runing Date: 2023-08-05] [Function: public.fn_test..........] Execution time: 0:00:00.138380
+[Runing Date: 2023-08-05] [Function: public.fn_test_long.....] Execution time: 0:00:00.111157
+[Runing Date: 2023-08-05] [Function: public.fn_test_very_long] Execution time: 0:00:00.077731
+*********************************************************************************************</div>
+            </div>
+
             <h2>Get started with the UI</h2>
-            <p>DB Analytics Tools UI is a web-based GUI. No need to code, all you need is a JSON config file.</p>
+            <p>DB Analytics Tools UI is a web-based GUI <code>db_analytics_tools.webapp</code>. No need to code, all you need is a JSON config file. Run the command below :</p>
             <div class="code-container">
                 <div class="code-header"><button class="copy-btn">Copy</button></div>
                 <div class="code-content">db_tools start --config config.json --address 127.0.0.1 --port 8050</div>
             </div>
             <img src="https://raw.githubusercontent.com/joekakone/db-analytics-tools/master/db-analytics-tools-ui-screenshot.png" alt="UI Screenshot" class="rounded-lg border border-slate-800 my-8">
 
-            <h2>Documentation</h2>
-            <p>Documentation available on <a href="https://joekakone.github.io/db-analytics-tools">https://joekakone.github.io/db-analytics-tools</a>.</p>
+            <h2>Interact with Airflow</h2>
+            <p>
+                We also provide a class for interacting with the <strong>Apache Airflow REST API</strong>.
+            </p>
+            <div class="code-container">
+                <div class="code-header"><button class="copy-btn">Copy</button></div>
+                <div class="code-content"># Import Airflow class
+from db_analytics_tools.airflow import AirflowRESTAPI
 
+# Airflow Config
+AIRFLOW_BASE_URL = "http://localhost:8080"
+AIRFLOW_API_ENDPOINT = "api/v2/"
+AIRFLOW_USERNAME = "airflow"
+AIRFLOW_PASSWORD = "airflow"
+
+# Create an instance
+airflow = AirflowRESTAPI(AIRFLOW_BASE_URL, AIRFLOW_API_ENDPOINT, AIRFLOW_USERNAME, AIRFLOW_PASSWORD)
+
+# Get list of DAGs
+airflow.get_dags_list(include_all=False).head(10)
+
+# Get a DAG details
+airflow.get_dag_details(dag_id="my_airflow_pipeline", include_tasks=False)
+
+# Get list of tasks of a DAG
+airflow.get_dag_tasks(dag_id="my_airflow_pipeline").head(10)
+
+# Trigger a DAG
+airflow.trigger_dag(dag_id="my_airflow_pipeline", start_date='2025-03-11', end_date='2025-03-12')
+
+# Backfill a DAG
+airflow.backfill_dag(dag_id="my_airflow_pipeline", start_date='2025-03-01', end_date='2025-03-12', reprocess_behavior="failed")</div>
+            </div>
+
+            <h2>Forecasting</h2>
+            <p>
+                DB Analytics Tools also provides a class for forecasting KPIs based on historical data. It uses the <strong>STL decomposition method</strong> to decompose time series into trend, seasonal and residual components.
+            </p>
+            <div class="code-container">
+                <div class="code-header"><button class="copy-btn">Copy</button></div>
+                <div class="code-content"># Import Forecast class
+from db_analytics_tools.learning import ForecastKPI
+
+# Create an instance
+forecast = ForecastKPI(historical_data=df, date_column="dt")
+
+# Summary
+print(forecast.describe())
+
+# Decomposition
+decomposition_result = forecast.decompose_time_series(kpi_name='active_1d', period=7, model='additive', plot=True)
+print(decomposition_result.trend.head())
+print(decomposition_result.seasonal.head())</div>
+            </div>
+
+            <h2>Help and Support</h2>
+            <p>If you need help on DB Analytics Tools, please send me an message on <a href="https://wa.me/+22891518923">Whatsapp</a> or send me a <a href="mailto:contact@josephkonka.com">mail</a>.</p>
+            
+            <h2>Contributing</h2>
+            <p>Please see the <a href="CONTRIBUTING.md">contributing docs</a>.</p>
+            
             <h2>Maintainer</h2>
             <p>
-                DB Analytics Tools is maintained by <strong>Joseph Konka</strong>. Joseph is a Data Science Professional with a focus on Python based tools.
+                DB Analytics Tools is maintained by <a href="https://www.linkedin.com/in/joseph-koami-konka/">Joseph Konka</a>. 
+                Joseph is a Data Science Professional with a focus on Python based tools. 
+                He developed the base code while working at Yas Togo to automate his daily tasks. 
+                He packages the code into a Python package called <strong>SQL ETL Runner</strong> which becomes <strong>Databases Analytics Tools</strong>. 
+                For more about Joseph Konka, please visit <a href="https://joekakone.github.io">joekakone.github.io</a>.
             </p>
         </div>
     </main>
@@ -283,7 +516,9 @@ etl = dbi.ETL(client=client)</div>
                         <div class="w-8 h-8 bg-blue-600 rounded flex items-center justify-center text-white font-bold text-xs">DB</div>
                         <span class="text-xl font-bold text-white tracking-tight">DB Analytics Tools</span>
                     </div>
-                    <p class="text-slate-400 text-sm leading-relaxed mb-6">Speed up your analytics workflows</p>
+                    <p class="text-slate-400 text-sm leading-relaxed mb-6">
+                        Speed up your analytics workflows
+                    </p>
                     <div class="flex gap-4 text-slate-500">
                         <a href="https://github.com/joekakone" class="hover:text-white transition"><i class="fab fa-github"></i></a>
                         <a href="#" class="hover:text-white transition"><i class="fab fa-linkedin-in"></i></a>
@@ -294,17 +529,17 @@ etl = dbi.ETL(client=client)</div>
                 <div>
                     <h4 class="text-white font-bold text-sm uppercase tracking-widest mb-6">Our Services</h4>
                     <ul class="space-y-4 text-sm text-slate-400">
-                        <li><a href="#" class="footer-link">Data Audit</a></li>
-                        <li><a href="#" class="footer-link">Data Integration</a></li>
-                        <li><a href="#" class="footer-link">Airflow Deployment</a></li>
-                        <li><a href="#" class="footer-link">API Development</a></li>
+                        <li><a href="services.html" class="footer-link">Data Audit</a></li>
+                        <li><a href="services.html" class="footer-link">Data Integration</a></li>
+                        <li><a href="services.html" class="footer-link">Airflow Deployment</a></li>
+                        <li><a href="services.html" class="footer-link">API Development</a></li>
                     </ul>
                 </div>
 
                 <div>
                     <h4 class="text-white font-bold text-sm uppercase tracking-widest mb-6">The Project</h4>
                     <ul class="space-y-4 text-sm text-slate-400">
-                        <li><a href="index.html#about" class="footer-link">About Us</a></li>
+                        <li><a href="#about" class="footer-link">About</a></li>
                         <li><a href="docs.html" class="footer-link">Documentation</a></li>
                         <li><a href="#" class="footer-link">Contact</a></li>
                     </ul>
@@ -312,25 +547,41 @@ etl = dbi.ETL(client=client)</div>
 
                 <div>
                     <h4 class="text-white font-bold text-sm uppercase tracking-widest mb-6">Newsletter</h4>
-                    <p class="text-sm text-slate-500 mb-6">Join our newsletter to get latest updates.</p>
+                    <p class="text-sm text-slate-500 mb-6">Join our newsletter to get latest updates on data engineering.</p>
                     <div class="relative group">
-                        <input type="email" placeholder="Email" class="w-full bg-slate-900 border border-slate-800 rounded-full py-3 px-6 text-sm text-white focus:outline-none focus:border-blue-500 transition">
-                        <button class="absolute right-1 top-1 bottom-1 w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-900">
+                        <input type="email" placeholder="Professional Email" class="w-full bg-slate-900 border border-slate-800 rounded-full py-3 px-6 text-sm text-white focus:outline-none focus:border-blue-500 transition">
+                        <button class="absolute right-1 top-1 bottom-1 w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-900 group-hover:scale-95 transition">
                             <i class="fas fa-arrow-right"></i>
                         </button>
                     </div>
                 </div>
             </div>
 
-            <div class="pt-8 border-t border-slate-900 flex flex-col lg:flex-row items-center justify-between gap-6 text-[13px] text-slate-500 text-center lg:text-left">
-                <div>© 2026 Lomé, Togo. Built by <strong>Joseph Konka</strong>.</div>
-                <div class="flex gap-6">
+            <div class="pt-8 border-t border-slate-900 flex flex-col lg:flex-row items-center justify-between gap-6 text-[13px] text-slate-500">
+                <div class="flex flex-wrap items-center gap-8 justify-center lg:justify-start">
+                    <span class="flex items-center gap-2">
+                        <img src="https://flagcdn.com/w20/tg.png" width="20" alt="Togo">
+                        contact@dbanalytics.tg
+                    </span>
+                    <span class="flex items-center gap-2">
+                        <i class="fas fa-phone-alt text-blue-500"></i>
+                        +228 91 51 89 23
+                    </span>
+                </div>
+                <div class="flex flex-wrap justify-center gap-6">
                     <a href="#" class="hover:text-white transition">Privacy Policy</a>
                     <a href="#" class="hover:text-white transition">Terms</a>
+                    <span>© 2026 Lomé, Togo.</span>
+                    <span class="text-slate-400">Built by <strong>Joseph Konka</strong>.</span>
                 </div>
             </div>
         </div>
     </footer>
+
+    <!-- Floating Back to Top -->
+    <a href="#hero" class="fixed bottom-6 right-6 w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition z-50">
+        <i class="fas fa-arrow-up"></i>
+    </a>
 
     <script>
         // Copy functionality
