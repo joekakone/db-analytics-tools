@@ -45,6 +45,18 @@
             border: 1px solid rgba(47, 129, 247, 0.2);
         }
 
+        .stack-card {
+            background: rgba(30, 41, 59, 0.4); /* Slate-800/40 for more light */
+            border: 1px solid rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(4px);
+            transition: all 0.3s ease;
+        }
+
+        .stack-card:hover {
+            background: rgba(30, 41, 59, 0.6);
+            border-color: rgba(255, 255, 255, 0.1);
+        }
+
         /* Continuous Logo Slider Animation */
         @keyframes scroll {
             0% { transform: translateX(0); }
@@ -243,6 +255,88 @@
         </div>
     </section>
 
+    <!-- DATA STACK -->
+    <section class="py-24 border-y border-slate-800 bg-slate-900/40 relative overflow-hidden">
+        <!-- Background decorative elements -->
+        <div class="absolute top-0 left-0 w-full h-full opacity-5 pointer-events-none">
+            <svg width="100%" height="100%">
+                <pattern id="grid" width="40" height="40" patternUnits="userSpaceOnUse">
+                    <path d="M 40 0 L 0 0 0 40" fill="none" stroke="white" stroke-width="0.5"/>
+                </pattern>
+                <rect width="100%" height="100%" fill="url(#grid)" />
+            </svg>
+        </div>
+
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+            <div class="text-center mb-16">
+                <h2 class="text-3xl font-bold text-white mb-4">Our Modern Data Stack</h2>
+                <p class="text-slate-400 max-w-2xl mx-auto">We implement a battle-tested architecture designed for performance, reliability, and enterprise-grade scalability.</p>
+            </div>
+
+            <div class="relative">
+                <!-- SVG Connections (Desktop) -->
+                <div class="hidden lg:block absolute top-1/2 left-0 w-full -translate-y-1/2 h-20 pointer-events-none">
+                    <svg width="100%" height="100%" viewBox="0 0 1000 100" preserveAspectRatio="none">
+                        <!-- Path 1: Airflow to SQL Server -->
+                        <path d="M 280 50 L 380 50" stroke="rgba(255,255,255,0.1)" stroke-width="2" fill="none" class="flow-line" />
+                        <!-- Path 2: SQL Server to Power BI -->
+                        <path d="M 620 50 L 720 50" stroke="rgba(255,255,255,0.1)" stroke-width="2" fill="none" class="flow-line" />
+                    </svg>
+                </div>
+
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-12 lg:gap-24 relative">
+                    <!-- Column 1: Orchestration -->
+                    <div class="flex flex-col items-center">
+                        <div class="stack-card p-8 rounded-3xl w-full text-center border-t-2 border-t-red-500/30">
+                            <div class="w-16 h-16 bg-white rounded-xl flex items-center justify-center mx-auto mb-6 p-2 shadow-lg shadow-red-500/10 transition group-hover:scale-110">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/d/de/AirflowLogo.png" alt="Apache Airflow" class="w-full h-auto">
+                            </div>
+                            <h4 class="text-lg font-bold text-white mb-2">Apache Airflow</h4>
+                            <p class="text-[10px] font-mono text-red-400/80 mb-4 uppercase tracking-widest">Orchestration & ETL</p>
+                            <p class="text-slate-400 text-sm leading-relaxed">Automating complex data workflows and monitoring pipeline health in real-time.</p>
+                        </div>
+                        <div class="lg:hidden my-4 text-slate-700 text-xl">
+                            <i class="fas fa-chevron-down animate-bounce"></i>
+                        </div>
+                    </div>
+
+                    <!-- Column 2: Storage -->
+                    <div class="flex flex-col items-center">
+                        <div class="stack-card p-8 rounded-3xl w-full text-center border-t-2 border-t-blue-500/30 shadow-xl shadow-blue-500/5">
+                            <div class="w-16 h-16 bg-white rounded-xl flex items-center justify-center mx-auto mb-6 p-2 shadow-lg shadow-blue-500/10">
+                                <img src="https://upload.wikimedia.org/wikipedia/it/2/23/Sql_server_logo.png" alt="SQL Server" class="w-full h-auto">
+                            </div>
+                            <h4 class="text-lg font-bold text-white mb-2">SQL Server</h4>
+                            <p class="text-[10px] font-mono text-blue-400/80 mb-4 uppercase tracking-widest">Data Warehouse</p>
+                            <p class="text-slate-400 text-sm leading-relaxed">Secure and high-performance storage for your enterprise single source of truth.</p>
+                        </div>
+                        <div class="lg:hidden my-4 text-slate-700 text-xl">
+                            <i class="fas fa-chevron-down animate-bounce"></i>
+                        </div>
+                    </div>
+
+                    <!-- Column 3: Presentation -->
+                    <div class="flex flex-col items-center">
+                        <div class="stack-card p-8 rounded-3xl w-full text-center border-t-2 border-t-yellow-500/30">
+                            <div class="w-16 h-16 bg-white rounded-xl flex items-center justify-center mx-auto mb-6 p-2 shadow-lg shadow-yellow-500/10">
+                                <img src="https://upload.wikimedia.org/wikipedia/commons/c/cf/New_Power_BI_Logo.svg" alt="Power BI" class="w-full h-auto">
+                            </div>
+                            <h4 class="text-lg font-bold text-white mb-2">Power BI Server</h4>
+                            <p class="text-[10px] font-mono text-yellow-400/80 mb-4 uppercase tracking-widest">Reporting & BI</p>
+                            <p class="text-slate-400 text-sm leading-relaxed">Delivering interactive insights and pixel-perfect reports directly to your team.</p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Flow Labels -->
+            <div class="hidden lg:flex justify-around mt-8 text-[10px] font-mono uppercase tracking-[0.2em] text-slate-600">
+                <span class="translate-x-12">Extract & Load</span>
+                <span class="translate-x-12">Query & Visualize</span>
+            </div>
+        </div>
+    </section>
+
     <!-- TRUSTED BY SECTION (Slider) -->
     <section class="py-16 border-y border-slate-800 bg-[#010409]/50 overflow-hidden">
         <div class="text-center mb-10">
@@ -253,20 +347,16 @@
                 <!-- Set 1 -->
                 <div class="logo-slide"><img src="https://upload.wikimedia.org/wikipedia/commons/5/51/IBM_logo.svg" alt="IBM" class="h-8"></div>
                 <div class="logo-slide"><img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google" class="h-8"></div>
-                <div class="logo-slide"><img src="https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_logo.svg" alt="Amazon" class="h-8"></div>
                 <div class="logo-slide"><img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" alt="Netflix" class="h-8"></div>
                 <div class="logo-slide"><img src="https://upload.wikimedia.org/wikipedia/commons/b/b9/Slack_Technologies_Logo.svg" alt="Slack" class="h-8"></div>
                 <div class="logo-slide"><img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" alt="Microsoft" class="h-8"></div>
-                <div class="logo-slide"><img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_Web_Services_Logo.svg" alt="AWS" class="h-8"></div>
                 <div class="logo-slide"><img src="https://upload.wikimedia.org/wikipedia/commons/0/01/LinkedIn_Logo.svg" alt="LinkedIn" class="h-8"></div>
                 <!-- Duplicate Set for loop -->
                 <div class="logo-slide"><img src="https://upload.wikimedia.org/wikipedia/commons/5/51/IBM_logo.svg" alt="IBM" class="h-8"></div>
                 <div class="logo-slide"><img src="https://upload.wikimedia.org/wikipedia/commons/2/2f/Google_2015_logo.svg" alt="Google" class="h-8"></div>
-                <div class="logo-slide"><img src="https://upload.wikimedia.org/wikipedia/commons/9/93/Amazon_logo.svg" alt="Amazon" class="h-8"></div>
                 <div class="logo-slide"><img src="https://upload.wikimedia.org/wikipedia/commons/0/08/Netflix_2015_logo.svg" alt="Netflix" class="h-8"></div>
                 <div class="logo-slide"><img src="https://upload.wikimedia.org/wikipedia/commons/b/b9/Slack_Technologies_Logo.svg" alt="Slack" class="h-8"></div>
                 <div class="logo-slide"><img src="https://upload.wikimedia.org/wikipedia/commons/4/44/Microsoft_logo.svg" alt="Microsoft" class="h-8"></div>
-                <div class="logo-slide"><img src="https://upload.wikimedia.org/wikipedia/commons/a/a9/Amazon_Web_Services_Logo.svg" alt="AWS" class="h-8"></div>
                 <div class="logo-slide"><img src="https://upload.wikimedia.org/wikipedia/commons/0/01/LinkedIn_Logo.svg" alt="LinkedIn" class="h-8"></div>
             </div>
         </div>
@@ -306,7 +396,7 @@
                     <span class="text-[10px] font-bold uppercase tracking-widest text-emerald-500 mb-4 block">Banking Sector</span>
                     <h4 class="text-xl font-bold text-white mb-4">Data Audit Automation</h4>
                     <p class="text-slate-400 text-sm leading-relaxed mb-6">
-                        Implementation of an automated audit system via our **DB Analytics Tools** framework to detect bank reconciliation anomalies between the core banking system and the DWH.
+                        Implementation of an automated audit system via our <strong>DB Analytics Tools</strong> framework to detect bank reconciliation anomalies between the core banking system and the DWH.
                     </p>
                     <div class="flex flex-wrap gap-2">
                         <span class="px-2 py-1 bg-slate-800 rounded text-[10px] text-slate-300">Python</span>
