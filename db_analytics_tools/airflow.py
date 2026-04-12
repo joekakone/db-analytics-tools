@@ -82,7 +82,7 @@ class AirflowRESTAPIV1:
             "timetable_description", "last_parsed_time", "next_dagrun", "tags"
         ]
 
-        endpoint = "dags"
+        endpoint = "dags?limit=1000"
         response = self.get(endpoint).get("dags", [])
 
         if not response:
@@ -270,7 +270,7 @@ class AirflowRESTAPI:
             "timetable_description", "last_parsed_time", "next_dagrun_logical_date", "tags"
         ]
 
-        endpoint = "dags"
+        endpoint = "dags?limit=1000"
         response = self.get(endpoint).get("dags", [])
 
         if not response:
