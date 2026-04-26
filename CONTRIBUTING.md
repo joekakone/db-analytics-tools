@@ -9,5 +9,17 @@ There are many ways to contribute to the **Databases Analytics Tools**.
 
 Thank you for your interest in making **Databases Analytics Tools** better!
 
+## Setup environment
+```sh
+python3 -m venv env
+source env/bin/activate
+pip install -r requirements.txt
+```
+
+## Install DB Analytics Tools
+```sh
+pip install -e .
+```
+
 ---
 *If you are interested in contributing, feel free to reach out!. Please send me an message on [Whatsapp](https://wa.me/+22891518923) or send me a [mail](mailto:contact@josephkonka.com).*
