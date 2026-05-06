@@ -505,9 +505,9 @@
                     <p class="text-sm text-slate-500 mb-6">Join our newsletter to get latest updates on data engineering.</p>
                     <div class="relative group">
                         <input type="email" placeholder="Professional Email" class="w-full bg-slate-900 border border-slate-800 rounded-full py-3 px-6 text-sm text-white focus:outline-none focus:border-blue-500 transition">
-                        <button class="absolute right-1 top-1 bottom-1 w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-900 group-hover:scale-95 transition">
+                        <a id="tally-link" href="#tally-open=mJzBvX&tally-layout=modal&tally-emoji-text=👋&tally-emoji-animation=wave" class="absolute right-1 top-1 bottom-1 w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-900 group-hover:scale-95 transition">
                             <i class="fas fa-arrow-right"></i>
-                        </button>
+                        </a>
                     </div>
                 </div>
             </div>
@@ -537,6 +537,29 @@
     <a href="#hero" class="fixed bottom-6 right-6 w-12 h-12 bg-blue-600 text-white rounded-full flex items-center justify-center shadow-lg hover:scale-110 transition z-50">
         <i class="fas fa-arrow-up"></i>
     </a>
+
+    <!-- Tally -->
+    <script async src="https://tally.so/widgets/embed.js"></script>
+
+    <script>
+        const emailInput = document.getElementById('newsletter-email');
+        const tallyLink = document.getElementById('tally-link');
+        
+        // L'URL de base sans le paramètre email
+        const baseHref = "#tally-open=mJzBvX&tally-layout=modal&tally-emoji-text=👋&tally-emoji-animation=wave";
+
+        emailInput.addEventListener('input', (e) => {
+            const emailValue = encodeURIComponent(e.target.value);
+            
+            if (emailValue) {
+                // On ajoute &email= à la fin du lien. 
+                // Note: Vérifiez dans Tally si le nom interne de votre champ est bien "email"
+                tallyLink.href = `${baseHref}&email=${emailValue}`;
+            } else {
+                tallyLink.href = baseHref;
+            }
+        });
+    </script>
 
 </body>
 </html>
