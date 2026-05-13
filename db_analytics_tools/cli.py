@@ -100,7 +100,7 @@ etl = dbi.ETL(client)
 
 #####################################################################################################
 # Execution
-etl.run_multiple(functions={functions}, start_date={start}, stop_date={stop}, freq={frequency})
+etl.run_multiple(functions={functions}, start_date='{start}', stop_date='{stop}', freq='{frequency}')
 #####################################################################################################
 """
     #####################################################################################################
