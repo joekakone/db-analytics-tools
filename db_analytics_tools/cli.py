@@ -87,12 +87,12 @@ import db_analytics_tools as db
 
 #####################################################################################################
 client = db.Client(
-    host={host},
-    port={port},
-    database={database},
-    username={user},
-    password={password},
-    engine={engine}
+    host='{host}',
+    port='{port}',
+    database='{database}',
+    username='{user}',
+    password='{password}',
+    engine='{engine}'
 )
 etl = dbi.ETL(client)
 #####################################################################################################
