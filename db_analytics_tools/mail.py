@@ -72,3 +72,5 @@ def generate_mail(etl_name, html_table, html_template=MAIL_CONTENT):
         str: The generated HTML content.
     """
     return html_template.format(etl_name=etl_name, html_table=open(html_table, "r").read())
+
+
