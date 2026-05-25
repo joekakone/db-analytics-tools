@@ -1009,7 +1009,7 @@ class DBAnalyticsUI:
 #####################################################################################################################################
 # Start Streamlit App
 #####################################################################################################################################
-def start():
+def main():
     """
     Starts the Streamlit app with the specified configuration file and server settings.
     """
@@ -1060,6 +1060,6 @@ app.run()
 
 if __name__ == "__main__":
     try:
-        start()
+        main()
     except SystemExit:
         pass
