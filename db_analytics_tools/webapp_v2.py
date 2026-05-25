@@ -26,6 +26,8 @@ import db_analytics_tools as db
 import db_analytics_tools.integration as dbi
 from db_analytics_tools.airflow import AirflowRESTAPI
 
+from db_analytics_tools.scheduler import CronManager
+
 
 
 #####################################################################################################################################
@@ -160,6 +162,55 @@ class DBAnalyticsUI:
         """
         st.title(self.app_name)
         st.info(self.app_description)
+        
+        
+        #############################################################################################################################
+        # Cron Jobs Management
+        #############################################################################################################################
+        cron_manager = CronManager()
+        try:
+            cron_jobs = cron_manager.read()
+        except Exception as e:
+            pass
+
+        st.markdown("---")
+        st.subheader("Scheduled Jobs ⏰")
+        if cron_jobs.empty:
+            st.warning("No scheduled jobs found.", width='stretch')
+            # return
+        else:
+            print(cron_jobs)
+            print(len(cron_jobs))
+            st.dataframe(cron_jobs, width='stretch', hide_index=True)
+        
+        tabs = st.tabs([
+            "Manage Jobs 🛠️",
+            "Schedule a job 📅", 
+        ])
+        
+        with tabs[0]:
+            st.subheader("Manage Jobs 🛠️")
+        
+        with tabs[1]:
+            st.subheader("Schedule a job 📅")
+            with st.form("schedule_job_form", clear_on_submit=True, border=False):
+                job_command = st.text_input("Command to Schedule", placeholder="e.g. db_cli --engine greenplum --host XX.XXX.XX.XXX --port 5432 --database cdrfw --user joekakone --password Axian2580 --start 2026-01-01 --stop 2026-05-01 --functions bibox.fn_gros_ad_lu_agents bibox.fn_gros_ad_lu_agents_month_alignement --frequency m")
+                job_schedule = st.text_input("Cron Schedule", placeholder="e.g. 0 0 * * *")
+                job_comment = st.text_input("Unique Job Comment (ID)", placeholder="e.g. db_sync_weekly")
+                submit_job = st.form_submit_button("Schedule Job", type="primary", width='stretch')
+                
+                if submit_job:
+                    if not job_command or not job_schedule or not job_comment:
+                        st.error("Please fill in all fields to schedule a job.")
+                    else:
+                        success = cron_manager.create(job_command, job_schedule, comment=job_comment)
+                        if success:
+                            st.success(f"Job '{job_comment}' scheduled successfully!")
+                        else:
+                            st.error(f"A job with the comment '{job_comment}' already exists.")            
+        #############################################################################################################################
+        
+        
     #################################################################################################################################
 
 
@@ -174,20 +225,23 @@ class DBAnalyticsUI:
             col1, col2, col3 = st.columns([1, 2, 1])
             with col2:
                 st.markdown(f'<div style="text-align: center;"><img src="{self.app_logo}" width="150"></div>', unsafe_allow_html=True)
-                st.markdown('<h1 style="text-align: center;">Connexion 🔒</h1>', unsafe_allow_html=True)
+                st.markdown('<h1 style="text-align: center;">Authentication 🔒</h1>', unsafe_allow_html=True)
                 
                 # Credentials Form
                 user = st.text_input("Username")
                 question = self.config.get("auth_config", {}).get("secret_question", "Secret Question")
                 answer = st.text_input(f"Secret Question : {question}", type="password")
+                accept = st.checkbox("I accept the terms and conditions", value=False)
                 
                 # Authentication Logic
-                if st.button("Connect", width='stretch'):
+                if st.button("Login", width='stretch'):
                     expected_answer = self.config.get("auth_config", {}).get("secret_answer", "")
                     if user == "" or answer == "":
                         st.error("Missing credentials!", width='stretch')
                     elif not (user in self.allowed_users or self.allowed_users == []):
                         st.error("You are not allowed ! Please contact the administrator.", width='stretch')
+                    elif not accept:
+                        st.error("You must accept the terms and conditions to get access to the application.", width='stretch')
                     elif answer.lower() == expected_answer.lower() and (user in self.allowed_users or self.allowed_users == []):
                         st.session_state.auth_status = True
                         st.session_state.user = user
@@ -215,7 +269,7 @@ class DBAnalyticsUI:
             st.markdown(f'<h2 style="text-align: center;">DB Analytics Tools</h2>', unsafe_allow_html=True)
             st.markdown(f'<p style="text-align: center;">Speed up your analytics workflows</p>', unsafe_allow_html=True)
             st.markdown(f'<div style="text-align: center;"><img src="{self.app_logo}" width="150"></div>', unsafe_allow_html=True)
-            st.markdown(f'<p style="text-align: center;">Bonjour <strong>{st.session_state.user}</strong></p>', unsafe_allow_html=True)
+            st.markdown(f'<p style="text-align: center;">Hello <strong>{st.session_state.user}</strong></p>', unsafe_allow_html=True)
             
             st.markdown("---")
             #########################################################################################################################
@@ -263,41 +317,45 @@ class DBAnalyticsUI:
         """
         Render the Databases section in the sidebar.
         """
-        server_list = self.config.get("servers", [])
-        if not server_list:
+        database_list = self.config.get("database_instances", []) + [{"name": "Custom Database"}]
+        if not database_list:
             return
         
         is_connected = st.session_state.current_client is not None
         status_emoji = "🟢" if is_connected else "🔴"
         st.subheader(f"🛢️ Databases {status_emoji}")
         
-        server_names = [s["name"] for s in server_list]
-        selected_server_name = st.selectbox("Choose a DB Server", server_names)
-        server_cfg = next(s for s in server_list if s["name"] == selected_server_name)
+        database_names = [s["name"] for s in database_list]
+        selected_database_name = st.selectbox("Choose a DB Server", database_names)
+        database_cfg = next(s for s in database_list if s["name"] == selected_database_name)
         
         # DB Authentication Form
         with st.expander("DB Authentication 🔑", expanded=(st.session_state.current_client is None)):
-            db_user = st.text_input("DB Username")
-            db_pass = st.text_input("DB Password", type="password")
+            db_engine = st.text_input("Engine", value=database_cfg.get("engine"), placeholder="e.g. postgres, sqlserver")
+            db_host = st.text_input("Host", value=database_cfg.get("host"))
+            db_port = st.text_input("Port", value=database_cfg.get("port"))
+            db_database = st.text_input("Database", value=database_cfg.get("database"))
+            db_user = st.text_input("Username")
+            db_pass = st.text_input("Password", type="password")
             
             if st.button("Connect to DB", type="primary", width='stretch'):
                 try:
                     # Setup client
                     client = db.Client(
-                        host=server_cfg["host"],
-                        port=server_cfg["port"],
-                        database=server_cfg["database"],
+                        host=db_host,
+                        port=db_port,
+                        database=db_database,
                         username=db_user,
                         password=db_pass,
-                        engine=server_cfg.get("engine", "postgres")
+                        engine=db_engine
                     )
-                    st.session_state.pipelines = self.get_pipelines(server_cfg.get("pipelines", []))
+                    st.session_state.pipelines = self.get_pipelines(database_cfg.get("pipelines", []))
                     
                     st.session_state.current_client = client
                     st.session_state.etl = dbi.ETL(st.session_state.current_client)
                     
-                    st.session_state.current_server_name = selected_server_name
-                    st.success(f"Connected to {selected_server_name}")
+                    st.session_state.current_server_name = selected_database_name
+                    st.success(f"Connected to {selected_database_name}")
                     
                     # Active Module
                     st.session_state.active_module = "DB"

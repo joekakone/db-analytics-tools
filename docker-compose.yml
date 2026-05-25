@@ -1,0 +1,23 @@
+
+
+services:
+  db-analytics-tools-ui:
+    image: joekakone/db-analytics-tools-ui:0.1
+    build:
+      context: .
+      dockerfile: Dockerfile.ui
+    ports:
+      - "8050:8050"
+    # volumes:
+    #   - .:/app
+    environment:
+      - config_v2.json=/app/config_v2.json
+    networks:
+      - db-analytics-tools-network
+      - deploy-data-warehouse_analytics-network
+
+networks:
+  db-analytics-tools-network:
+    driver: bridge
+  deploy-data-warehouse_analytics-network:
+    external: true
