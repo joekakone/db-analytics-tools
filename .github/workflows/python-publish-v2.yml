@@ -1,78 +1,32 @@
-# This workflow will upload a Python Package to PyPI when a release is created
-# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-python#publishing-to-package-registries
-
-name: Upload Python Package V2
+name: Upload Python Package
 
 on:
   push:
     branches:
-      - main
       - master
-  release:
-    types: [published]
+
+permissions:
+  contents: read
 
 jobs:
-  release-build:
-    name: Build Release Distributions
+  deploy:
+
     runs-on: ubuntu-latest
-    permissions:
-      # Explicitly grant read permission to check out public/private repository code
-      contents: read
 
     steps:
-      # 1. Checkout code without persisting credentials to avoid 403 Git caching issues
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          persist-credentials: false
-
-      # 2. Setup Python environment with caching enabled
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: "3.x"
-          cache: "pip"
-
-      # 3. Build distributions safely
-      - name: Build release distributions
-        run: |
-          python -m pip install --upgrade pip
-          python -m pip install build
-          python -m build
-
-      # 4. Upload build artifacts for the publish job
-      - name: Upload distributions
-        uses: actions/upload-artifact@v4
-        with:
-          name: release-dists
-          path: dist/
-
-  pypi-publish:
-    name: Publish Release to PyPI
-    runs-on: ubuntu-latest
-    needs:
-      - release-build
-    # Ensure this job only runs when a release is actually published (prevents duplicate push failures)
-    if: github.event_name == 'release' && github.event.action == 'published'
-    permissions:
-      # Mandatory permission for Trusted Publishing (OIDC) without static passwords
-      id-token: write
-      contents: read
-
-    environment:
-      name: pypi
-      url: https://pypi.org/project/db-analytics-tools/
-
-    steps:
-      # 1. Download artifacts built in the previous job
-      - name: Retrieve release distributions
-        uses: actions/download-artifact@v4
-        with:
-          name: release-dists
-          path: dist/
-
-      # 2. Publish to PyPI safely via Trusted Publishing
-      - name: Publish release distributions to PyPI
-        uses: pypa/gh-action-pypi-publish@release/v1
-        with:
-          packages-dir: dist/
+    - uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v3
+      with:
+        python-version: '3.x'
+    - name: Install dependencies
+      run: |
+        python -m pip install --upgrade pip
+        pip install build
+    - name: Build package
+      run: python -m build
+    - name: Publish package
+      uses: pypa/gh-action-pypi-publish@27b31702a0e7fc50959f5ad993c78deac1bdfc29
+      with:
+        user: __token__
+        password: ${{ secrets.PYPI_API_TOKEN }}
