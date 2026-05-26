@@ -38,8 +38,8 @@ def main():
     # Execution Parameters
     parser.add_argument("--start", help="Start date. e.g. 3 for D-3", default=1, required=True)
     parser.add_argument("--stop", help="Stop date. e.g. 1 for D-1", default=1, required=True)
-    parser.add_argument("--functions", nargs='+', help="List of functions to run", required=True)
     parser.add_argument("--freq", help="Execution frequency", required=True)
+    parser.add_argument("--functions", nargs='+', help="List of functions to run", required=True)
 
     args = parser.parse_args()
     #####################################################################################################
@@ -57,8 +57,8 @@ def main():
     # Execution Parameters
     start = args.start
     stop = args.stop
-    functions = args.functions
     freq = args.freq
+    functions = args.functions
     #####################################################################################################
 
 
@@ -123,6 +123,8 @@ etl.run_multiple(functions={functions}, start_date='{start_date}', stop_date='{s
 
 
     #####################################################################################################
+    # Run Streamlit with the temporary file and pass the arguments
+    #####################################################################################################
     try:
         # Run Streamlit with the temporary file
         subprocess.run([
@@ -135,8 +137,8 @@ etl.run_multiple(functions={functions}, start_date='{start_date}', stop_date='{s
             "--password", password,
             "--start", start,
             "--stop", stop,
+            "--freq", freq,
             "--functions", " ".join(functions),
-            "--freq", freq
         ], check=True)
     finally:
         # Clean up the temporary file after execution
