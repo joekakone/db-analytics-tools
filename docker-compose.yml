@@ -1,4 +1,8 @@
-
+########################################################################################
+# docker-compose.yml for db-analytics-tools Streamlit Web Application                  #
+# Created by: Joseph Konka                                                             #
+# Date: 2026-04-24                                                                     #
+########################################################################################
 
 services:
   db-analytics-tools-ui:
@@ -8,13 +12,16 @@ services:
       dockerfile: Dockerfile.ui
     ports:
       - "8050:8050"
-    # volumes:
-    #   - .:/app
-    environment:
-      - config_v2.json=/app/config_v2.json
+    volumes:
+      - ./config_v2.json:/app/config_v2.json
+      - db_cron_data:/var/spool/cron/crontabs
     networks:
       - db-analytics-tools-network
       - deploy-data-warehouse_analytics-network
+
+volumes:
+  db_cron_data:
+    driver: local
 
 networks:
   db-analytics-tools-network:

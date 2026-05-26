@@ -1,3 +1,9 @@
+###################################################################################################
+# Dockerfile for db-analytics-tools Streamlit Web Application                                     #
+# Created by: Joseph Konka                                                                        #
+# Date: 2026-04-24                                                                                #
+###################################################################################################
+
 # Base Docker Image
 FROM python:3.11-alpine
 
@@ -7,21 +13,16 @@ ENV DEBIAN_FRONTEND=noninteractive
 # Set Working directory
 WORKDIR /app
 
-# # Install necessary packages
-# RUN apt-get update && \
-#     apt-get install -y --no-install-recommends \
-#     cron \
-#     htop && \
-#     apt-get clean && \
-#     rm -rf /var/lib/apt/lists/*
-
 # Install dependencies
 RUN pip install --upgrade pip \
-    && pip install --no-cache-dir db-analytics-tools
+    && pip install --no-cache-dir --upgrade db-analytics-tools
 
 # Enable access to the port
 EXPOSE 8050
 
 # Launch application
-# CMD ["db_tools", "start", "--config=config.json", "--address=0.0.0.0", "--port=8050"]
 CMD ["db_tools_v2", "start", "--config=config_v2.json", "--address=0.0.0.0", "--port=8050"]
+
+###################################################################################################
+#                                                                                                 #
+###################################################################################################

@@ -7,12 +7,12 @@ with open("README.md", "r") as f:
 
 setup(
     name="db_analytics_tools",
-    version="0.1.8.20",
+    version="0.1.8.21 ",
     url="https://joekakone.github.io/db-analytics-tools",
     download_url="https://github.com/joekakone/db-analytics-tools",
     project_urls={
         "Bug Tracker": "https://github.com/joekakone/db-analytics-tools/issues",
-        "Documentation": "https://joekakone.github.io/db-analytics-tools/docs.html",
+        "Documentation": "https://joekakone.github.io/db-analytics-tools/docs",
         "Source Code": "https://github.com/joekakone/db-analytics-tools",
     },
     license="MIT",

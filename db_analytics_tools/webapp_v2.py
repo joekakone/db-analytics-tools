@@ -37,6 +37,9 @@ class DBAnalyticsUI:
     """
     A Streamlit-based web application for managing database analytics tools, including database connections,
     """
+    #################################################################################################################################
+    # Initialization & State Management
+    #################################################################################################################################
     def __init__(self, config):
         """
         Initializes the UI with database configuration and pipelines.
@@ -104,6 +107,226 @@ class DBAnalyticsUI:
 
 
     #################################################################################################################################
+    # Authentication
+    #################################################################################################################################
+    def check_auth(self):
+        """
+        Gère l'écran de connexion avec authentification par question secrète.
+        """
+        if not st.session_state.auth_status:
+            col1, col2, col3 = st.columns([1, 2, 1])
+            with col2:
+                st.markdown(f'<div style="text-align: center;"><img src="{self.app_logo}" width="150"></div>', unsafe_allow_html=True)
+                st.markdown('<h1 style="text-align: center;">Authentication 🔒</h1>', unsafe_allow_html=True)
+                
+                # Credentials Form
+                user = st.text_input("Username")
+                question = self.config.get("auth_config", {}).get("secret_question", "Secret Question")
+                answer = st.text_input(f"Secret Question : {question}", type="password")
+                accept = st.checkbox("I accept the terms and conditions", value=False)
+                
+                # Authentication Logic
+                if st.button("Login", width='stretch'):
+                    expected_answer = self.config.get("auth_config", {}).get("secret_answer", "")
+                    if user == "" or answer == "":
+                        st.error("Missing credentials!", width='stretch')
+                    elif not (user in self.allowed_users or self.allowed_users == []):
+                        st.error("You are not allowed ! Please contact the administrator.", width='stretch')
+                    elif not accept:
+                        st.error("You must accept the terms and conditions to get access to the application.", width='stretch')
+                    elif answer.lower() == expected_answer.lower() and (user in self.allowed_users or self.allowed_users == []):
+                        st.session_state.auth_status = True
+                        st.session_state.user = user
+                        st.success("Authentication Succeed ! Redirection...", width='stretch')
+                        time.sleep(1)
+                        st.rerun()
+                    else:
+                        st.error("Something went wrong !", width='stretch')
+            return False
+        return True
+    #################################################################################################################################
+
+
+    #################################################################################################################################
+    # Sidebar Management
+    #################################################################################################################################
+    def sidebar_management(self):
+        """
+        Sidebar : Server selection, Connection DB and Airflow.
+        """
+        with st.sidebar:
+            #########################################################################################################################
+            # Branding & User Info
+            #########################################################################################################################
+            st.markdown(f'<h2 style="text-align: center;">DB Analytics Tools</h2>', unsafe_allow_html=True)
+            st.markdown(f'<p style="text-align: center;">Speed up your analytics workflows</p>', unsafe_allow_html=True)
+            if self.app_logo:
+                st.markdown(f'<div style="text-align: center;"><img src="{self.app_logo}" width="150"></div>', unsafe_allow_html=True)
+            st.markdown(f'<p style="text-align: center;">Hello <strong>{st.session_state.user}</strong></p>', unsafe_allow_html=True)
+            #########################################################################################################################
+            
+            
+            #########################################################################################################################
+            # Navigation
+            #########################################################################################################################
+            # st.markdown("### 🧭 Navigation")
+            is_at_home = st.session_state.active_module is None
+            # if st.button("🏠 Back to Home", type="secondary" if not is_at_home else "primary", use_container_width=True):
+            if st.button("🏠", type="secondary" if not is_at_home else "primary", use_container_width=True):
+                st.session_state.active_module = None
+                st.rerun()
+            st.markdown("---")
+            #########################################################################################################################
+            
+            
+            #########################################################################################################################
+            # Databases
+            #########################################################################################################################
+            self._render_db_section()
+            
+            
+            #########################################################################################################################
+            # Airflow
+            #########################################################################################################################
+            self._render_airflow_section()
+            
+            
+            #########################################################################################################################
+            # Power BI
+            #########################################################################################################################
+            self._render_external_links()
+            
+            
+            #########################################################################################################################
+            # Logout Button
+            #########################################################################################################################
+            if st.button("Logout", type="primary", width='stretch'):
+                st.session_state.auth_status = False
+                st.session_state.user = None
+                st.session_state.current_client = None
+                st.session_state.current_server_name = None
+                st.session_state.active_module = None
+                st.session_state.current_airflow = None
+                st.rerun()
+            #########################################################################################################################
+            
+            
+            #########################################################################################################################
+            # Footer
+            #########################################################################################################################
+            st.sidebar.markdown("---")
+            st.sidebar.markdown(
+                "© 2023 DB Analytics Tools | [About](https://pypi.org/project/db-analytics-tools/)",
+                unsafe_allow_html=True
+            )
+            #########################################################################################################################
+    #################################################################################################################################
+
+
+    #################################################################################################################################
+    # Defaut Content
+    #################################################################################################################################
+    def _render_default_view(self):
+        """
+        Render the default view.
+        """
+        st.title(self.app_name)
+        st.info(self.app_description)
+        
+        
+        #############################################################################################################################
+        # Cron Jobs Management
+        #############################################################################################################################
+        cron_manager = CronManager()
+        try:
+            cron_jobs = cron_manager.read()
+        except Exception as e:
+            pass
+
+        st.markdown("---")
+        st.subheader("Scheduled Jobs ⏰")
+        if cron_jobs.empty:
+            st.warning("No scheduled jobs found.", width='stretch')
+            # return
+        else:
+            print(cron_jobs)
+            print(len(cron_jobs))
+            st.dataframe(cron_jobs, width='stretch', hide_index=True)
+        
+        tabs = st.tabs([
+            "Manage Jobs 🛠️",
+            "Schedule a job 📅", 
+        ])
+        
+        with tabs[0]:
+            if cron_jobs.empty and 1==2:
+                st.warning("No scheduled jobs found.", width='stretch')
+                # return
+            else:
+                st.subheader("Manage Jobs 🛠️")
+                
+                try:
+                    selected_job = st.selectbox("Select a job for action", cron_jobs['id'].unique())
+                    
+                    c1, c2, c3 = st.columns(3)
+                    
+                    with c1:
+                        with st.form("reschedule_job", clear_on_submit=False, border=False):
+                            schedule_interval = st.text_input("Reschedule Job", placeholder="e.g. 0 0 * * *")
+                            if st.form_submit_button("📝 Reschedule", width='stretch'):
+                                pass
+                                # client.execute(f"ALTER TABLE {selected_job} RENAME TO {schedule_interval}")
+                                # st.success(f"Job renamed to {schedule_interval}.")
+
+                    with c2:
+                        with st.form("update_command", clear_on_submit=False, border=False):
+                            job_command = st.text_input("Update Job Command", placeholder="e.g. db_cli --engine greenplum --host XX.XXX.XX.XXX --port 5432 --database cdrfw --user joekakone --password Axian2580 --start 2026-01-01 --stop 2026-05-01 --functions bibox.fn_gros_ad_lu_agents bibox.fn_gros_ad_lu_agents_month_alignement --frequency m")
+                            if st.form_submit_button("📝 Update Command", width='stretch'):
+                                pass
+                                # client.execute(f"ALTER TABLE {selected_job} SET SCHEMA {new_schema}")
+                                # st.success(f"Table moved to schema {new_schema}.")
+
+                    with c3:
+                        st.markdown('<div style="margin-bottom: 0.15rem;"><span style="font-size: 14px; margin-bottom: 0rem;">⚠️ Use with caution !</span></div>', unsafe_allow_html=True)
+                        if st.button("🗑️ Disable Job", type="primary", width='stretch'):
+                            pass
+                            # client.execute(f"TRUNCATE {selected_job}")
+                            # st.warning(f"Table {selected_job} truncated.")
+
+                        if st.button("🗑️ Delete Job", type="primary", width='stretch'):
+                            pass
+                            # client.execute(f"DROP TABLE {selected_job}")
+                            # st.error(f"Table {selected_job} deleted.")
+                    
+                    if click_on_preview_job:
+                        # st.dataframe(df_preview, width='stretch', hide_index=True)
+                        click_on_preview_job = False
+
+                except Exception as e:
+                    st.error(f"Erreur d'accès aux tables : {e}")
+
+        
+        with tabs[1]:
+            st.subheader("Schedule a job 📅")
+            with st.form("schedule_job_form", clear_on_submit=True, border=False):
+                job_command = st.text_input("Command to Schedule", placeholder="e.g. db_cli --engine greenplum --host XX.XXX.XX.XXX --port 5432 --database cdrfw --user joekakone --password Axian2580 --start 2026-01-01 --stop 2026-05-01 --functions bibox.fn_gros_ad_lu_agents bibox.fn_gros_ad_lu_agents_month_alignement --frequency m")
+                job_schedule = st.text_input("Cron Schedule", placeholder="e.g. 0 0 * * *")
+                job_comment = st.text_input("Unique Job Comment (ID)", placeholder="e.g. db_sync_weekly")
+                submit_job = st.form_submit_button("Schedule Job", type="primary", width='stretch')
+                
+                if submit_job:
+                    if not job_command or not job_schedule or not job_comment:
+                        st.error("Please fill in all fields to schedule a job.")
+                    else:
+                        success = cron_manager.create(job_command, job_schedule, comment=job_comment)
+                        if success:
+                            st.success(f"Job '{job_comment}' scheduled successfully!")
+                        else:
+                            st.error(f"A job with the comment '{job_comment}' already exists.")            
+    #################################################################################################################################
+
+
+    #################################################################################################################################
     # Databases
     #################################################################################################################################
     def _render_db_module(self):
@@ -153,166 +376,14 @@ class DBAnalyticsUI:
     #################################################################################################################################
 
 
-    #################################################################################################################################
-    # Defaut Content
-    #################################################################################################################################
-    def _render_default_view(self):
-        """
-        Render the default view.
-        """
-        st.title(self.app_name)
-        st.info(self.app_description)
-        
-        
-        #############################################################################################################################
-        # Cron Jobs Management
-        #############################################################################################################################
-        cron_manager = CronManager()
-        try:
-            cron_jobs = cron_manager.read()
-        except Exception as e:
-            pass
 
-        st.markdown("---")
-        st.subheader("Scheduled Jobs ⏰")
-        if cron_jobs.empty:
-            st.warning("No scheduled jobs found.", width='stretch')
-            # return
-        else:
-            print(cron_jobs)
-            print(len(cron_jobs))
-            st.dataframe(cron_jobs, width='stretch', hide_index=True)
-        
-        tabs = st.tabs([
-            "Manage Jobs 🛠️",
-            "Schedule a job 📅", 
-        ])
-        
-        with tabs[0]:
-            st.subheader("Manage Jobs 🛠️")
-        
-        with tabs[1]:
-            st.subheader("Schedule a job 📅")
-            with st.form("schedule_job_form", clear_on_submit=True, border=False):
-                job_command = st.text_input("Command to Schedule", placeholder="e.g. db_cli --engine greenplum --host XX.XXX.XX.XXX --port 5432 --database cdrfw --user joekakone --password Axian2580 --start 2026-01-01 --stop 2026-05-01 --functions bibox.fn_gros_ad_lu_agents bibox.fn_gros_ad_lu_agents_month_alignement --frequency m")
-                job_schedule = st.text_input("Cron Schedule", placeholder="e.g. 0 0 * * *")
-                job_comment = st.text_input("Unique Job Comment (ID)", placeholder="e.g. db_sync_weekly")
-                submit_job = st.form_submit_button("Schedule Job", type="primary", width='stretch')
-                
-                if submit_job:
-                    if not job_command or not job_schedule or not job_comment:
-                        st.error("Please fill in all fields to schedule a job.")
-                    else:
-                        success = cron_manager.create(job_command, job_schedule, comment=job_comment)
-                        if success:
-                            st.success(f"Job '{job_comment}' scheduled successfully!")
-                        else:
-                            st.error(f"A job with the comment '{job_comment}' already exists.")            
-        #############################################################################################################################
-        
-        
-    #################################################################################################################################
+
+
 
 
     #################################################################################################################################
-    # Authentication
+    # Databases
     #################################################################################################################################
-    def check_auth(self):
-        """
-        Gère l'écran de connexion avec authentification par question secrète.
-        """
-        if not st.session_state.auth_status:
-            col1, col2, col3 = st.columns([1, 2, 1])
-            with col2:
-                st.markdown(f'<div style="text-align: center;"><img src="{self.app_logo}" width="150"></div>', unsafe_allow_html=True)
-                st.markdown('<h1 style="text-align: center;">Authentication 🔒</h1>', unsafe_allow_html=True)
-                
-                # Credentials Form
-                user = st.text_input("Username")
-                question = self.config.get("auth_config", {}).get("secret_question", "Secret Question")
-                answer = st.text_input(f"Secret Question : {question}", type="password")
-                accept = st.checkbox("I accept the terms and conditions", value=False)
-                
-                # Authentication Logic
-                if st.button("Login", width='stretch'):
-                    expected_answer = self.config.get("auth_config", {}).get("secret_answer", "")
-                    if user == "" or answer == "":
-                        st.error("Missing credentials!", width='stretch')
-                    elif not (user in self.allowed_users or self.allowed_users == []):
-                        st.error("You are not allowed ! Please contact the administrator.", width='stretch')
-                    elif not accept:
-                        st.error("You must accept the terms and conditions to get access to the application.", width='stretch')
-                    elif answer.lower() == expected_answer.lower() and (user in self.allowed_users or self.allowed_users == []):
-                        st.session_state.auth_status = True
-                        st.session_state.user = user
-                        st.success("Authentication Succeed ! Redirection...", width='stretch')
-                        time.sleep(1)
-                        st.rerun()
-                    else:
-                        st.error("Something went wrong !", width='stretch')
-            return False
-        return True
-    #################################################################################################################################
-
-
-    #################################################################################################################################
-    # Sidebar Management
-    #################################################################################################################################
-    def sidebar_management(self):
-        """
-        Barre latérale : Sélection de serveur, Connexion DB et Airflow.
-        """
-        with st.sidebar:
-            #########################################################################################################################
-            # Branding & User Info
-            #########################################################################################################################
-            st.markdown(f'<h2 style="text-align: center;">DB Analytics Tools</h2>', unsafe_allow_html=True)
-            st.markdown(f'<p style="text-align: center;">Speed up your analytics workflows</p>', unsafe_allow_html=True)
-            st.markdown(f'<div style="text-align: center;"><img src="{self.app_logo}" width="150"></div>', unsafe_allow_html=True)
-            st.markdown(f'<p style="text-align: center;">Hello <strong>{st.session_state.user}</strong></p>', unsafe_allow_html=True)
-            
-            st.markdown("---")
-            #########################################################################################################################
-            
-            
-            #########################################################################################################################
-            # Databases
-            #########################################################################################################################
-            self._render_db_section()
-            
-            
-            #########################################################################################################################
-            # Airflow
-            #########################################################################################################################
-            self._render_airflow_section()
-            
-            #########################################################################################################################
-            # Power BI
-            #########################################################################################################################
-            self._render_external_links()
-            
-            
-            #########################################################################################################################
-            # Logout Button
-            #########################################################################################################################
-            if st.button("Logout", type="primary", width='stretch'):
-                st.session_state.auth_status = False
-                st.session_state.current_client = None
-                st.rerun()
-            #########################################################################################################################
-            
-            #########################################################################################################################
-            # Footer
-            #########################################################################################################################
-            st.sidebar.markdown("---")
-            st.sidebar.markdown(
-                "© 2023 DB Analytics Tools | [About](https://pypi.org/project/db-analytics-tools/)",
-                unsafe_allow_html=True
-            )
-            #########################################################################################################################
-    #################################################################################################################################
-
-
     def _render_db_section(self):
         """
         Render the Databases section in the sidebar.
