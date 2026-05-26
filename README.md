@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/joekakone/db-analytics-tools/master/cover.png"><br>
+  <img src="https://raw.githubusercontent.com/joekakone/db-analytics-tools/master/static/img/cover.png"><br>
 </div>
 
 # DB Analytics Tools
@@ -274,7 +274,7 @@ DB Analytics Tools UI is a web-based GUI  (`db_analytics_tools.webapp.UI`). No n
 ```sh
 db_tools start --config config.json --address 127.0.0.1 --port 8050
 ```
-![](https://raw.githubusercontent.com/joekakone/db-analytics-tools/master/db-analytics-tools-ui-screenshot.png)
+![](https://raw.githubusercontent.com/joekakone/db-analytics-tools/master/static/img/db-analytics-tools-ui-screenshot.png)
 
 
 ## Interact with Airflow
