@@ -21,8 +21,7 @@ RUN pip install --upgrade pip \
 EXPOSE 8050
 
 # Launch application
-# CMD ["db_tools_v2", "start", "--config=config_v2.json", "--address=0.0.0.0", "--port=8050"]
-CMD crond -b -l 2 && db_tools_v2 start --config=config_v2.json --address=0.0.0.0 --port=8050
+CMD crond -b -l 2 && db_tools start --config=config.json --address=0.0.0.0 --port=8050
 
 ###################################################################################################
 #                                                                                                 #

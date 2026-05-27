@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="https://raw.githubusercontent.com/joekakone/db-analytics-tools/master/static/img/cover.png"><br>
+  <img src="static/img/cover.png"><br>
 </div>
 
 # DB Analytics Tools
@@ -270,11 +270,22 @@ Iterations  : 5
 ```
 
 ## Get started with the UI
-DB Analytics Tools UI is a web-based GUI  (`db_analytics_tools.webapp.UI`). No need to code, all you need is a JSON config file. Run the command below :
+DB Analytics Tools UI is a web-based GUI  (`db_analytics_tools.webapp.DBAnalyticsUI`). No need to code, all you need is a JSON config file. Run the command below :
 ```sh
 db_tools start --config config.json --address 127.0.0.1 --port 8050
 ```
-![](https://raw.githubusercontent.com/joekakone/db-analytics-tools/master/static/img/db-analytics-tools-ui-screenshot.png)
+![](static/img/db-analytics-tools-ui-screenshot.png)
+
+
+## Get started with the CLI
+DB Analytics Tools CLI is a command line interface (`db_analytics_tools.cli`) that allows you to run ETL pipelines and interact with the database without writing any code. Run the command below :
+```sh
+db_cli --engine greenplum --host localhost --port 5432 --database cdrfw --user joekakone --password mypassword --start 3 --stop 1 --freq m --functions prod.fn_preprocess_sales prod.fn_agregate_sales
+```
+Possible to redirect output to a log file
+```sh
+db_cli --engine greenplum --host localhost --port 5432 --database cdrfw --user joekakone --password mypassword --start 3 --stop 1 --freq m --functions prod.fn_preprocess_sales prod.fn_agregate_sales >> /app/01.log
+```
 
 
 ## Interact with Airflow
@@ -339,7 +350,7 @@ If you need help on DB Analytics Tools, please send me an message on [Whatsapp](
 
 
 ## Maintainer
-DB Analytics Tools is maintained by [Joseph Konka](https://www.linkedin.com/in/joseph-koami-konka/). Joseph is a Data Science Professional with a focus on Python based tools. He developed the base code while working at Togocom to automate his daily tasks. He packages the code into a Python package called **SQL ETL Runner** which becomes **Databases Analytics Tools**. For more about Joseph Konka, please visit [www.josephkonka.com](https://josephkonka.com).
+DB Analytics Tools is maintained by [Joseph Konka](https://www.linkedin.com/in/joseph-koami-konka/). Joseph is a Data Science Professional with a focus on Python based tools. He developed the base code while working at Togocom to automate his daily tasks. He packages the code into a Python package called **SQL ETL Runner** which becomes **Databases Analytics Tools**. For more about Joseph Konka, please visit [www.josephkonkathedataguy.com](https://joekakone.github.io/).
 
 
 ## Let's get in touch

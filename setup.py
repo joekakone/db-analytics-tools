@@ -7,7 +7,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="db_analytics_tools",
-    version="0.1.9.0 ",
+    version="0.1.9.1",
     url="https://joekakone.github.io/db-analytics-tools",
     download_url="https://github.com/joekakone/db-analytics-tools",
     project_urls={
@@ -37,9 +37,8 @@ setup(
     entry_points={
         "console_scripts": [
             "db_tools=db_analytics_tools.webapp:main",
-            "db_tools_v2=db_analytics_tools.webapp_v2:main",
+            "db_tools_v1=db_analytics_tools.webapp_v1:main",
             "db_cli=db_analytics_tools.cli:main",
-            # "db_scheduler=db_analytics_tools.scheduler:main",
         ],
     },
 )

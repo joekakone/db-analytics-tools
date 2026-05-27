@@ -10,10 +10,11 @@ services:
     build:
       context: .
       dockerfile: Dockerfile.ui
+    restart: always
     ports:
       - "8050:8050"
     volumes:
-      - ./config_v2.json:/app/config_v2.json
+      - ./config.json:/app/config.json
       - db_cron_data:/var/spool/cron/crontabs
     networks:
       - db-analytics-tools-network

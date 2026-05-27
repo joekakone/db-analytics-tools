@@ -1,7 +1,7 @@
 # coding : utf-8
 
 """
-    DB Analytics Tools : Web User Interface
+    DB Analytics Tools : Command Line Interface
 
     This module provides classes and functions for database interactions and data migration.
 """
