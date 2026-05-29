@@ -135,16 +135,23 @@ class Client:
         Generate a connection URI based on the provided parameters.
         """
         password = urllib.parse.quote(self.password)
+        
         if self.engine in ("postgres", "greenplum"):
             self.uri = f"postgresql+psycopg2://{self.username}:{password}@{self.host}:{self.port}/{self.database}"
             
             engine = create_engine(self.uri)
             self.conn = engine.connect().execution_options(stream_results=True)
-        elif self.engine == "sqlserver":
-            odbc_params = urllib.parse.quote_plus("TrustServerCertificate=yes")
-            uri = f"mssql+pyodbc://{self.username}:{password}@{self.host}:{self.port}/{self.database}?driver={self.driver}&odbc_connect={odbc_params}"
 
-            engine = create_engine(uri, connect_args={"driver": f"{{{self.driver}}}", "TrustServerCertificate": "yes"})
+        elif self.engine == "sqlserver":
+            uri = f"mssql+pyodbc://{self.username}:{password}@{self.host}:{self.port}/{self.database}"
+
+            engine = create_engine(
+                uri,
+                connect_args={
+                    "driver": f"{{{self.driver}}}",
+                    "TrustServerCertificate": "yes"
+                }
+            )
             self.conn = engine.connect().execution_options(stream_results=True)
             self.uri = engine
         else:
