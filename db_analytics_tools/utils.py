@@ -87,6 +87,7 @@ class Client:
                         f"PWD={self.password};"
                         f"TrustServerCertificate=yes;"
                     )
+                    self.driver = driver
                     note = f'Successfully connected using driver: {driver}'
                     break  # Connection successful, exit the loop
                 except Exception as e:
@@ -137,8 +138,7 @@ class Client:
         if self.engine in ("postgres", "greenplum"):
             self.uri = f"postgresql+psycopg2://{self.username}:{password}@{self.host}:{self.port}/{self.database}"
         elif self.engine == "sqlserver":
-            driver = 'ODBC Driver 17 for SQL Server'
-            self.uri = f"mssql+pyodbc://{self.username}:{password}@{self.host}:{self.port}/{self.database}?driver={driver}"
+            self.uri = f"mssql+pyodbc://{self.username}:{password}@{self.host}:{self.port}/{self.database}?driver={self.driver}"
         else:
             raise NotImplementedError("Engine not supported")
         
