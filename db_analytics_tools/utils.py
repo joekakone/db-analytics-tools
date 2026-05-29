@@ -80,10 +80,11 @@ class Client:
                 try:
                     self.conn = pyodbc.connect(
                         f"DRIVER={{{driver}}};"
-                        f"SERVER={self.host};"
+                        f"SERVER={self.host},{self.port};"
                         f"DATABASE={self.database};"
                         f"UID={self.username};"
                         f"PWD={self.password};"
+                        f"TrustServerCertificate=yes;"
                     )
                     if verbose == 1:
                         print(f"Successfully connected using driver: {driver}")
