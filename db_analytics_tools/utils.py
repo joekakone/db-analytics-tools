@@ -67,11 +67,12 @@ class Client:
                                          database=self.database,
                                          user=self.username,
                                          password=self.password)
+            note = 'Connection established successfully !'
         elif self.engine == "sqlserver":
             import pyodbc
             
             # Detect available ODBC drivers for SQL Server
-            drivers = [d for d in pyodbc.drivers() if "ODBC Driver" in d or "SQL Server" in d]
+            drivers = [d for d in pyodbc.drivers() if "ODBC Driver" in d and "SQL Server" in d]
             if not drivers:
                 raise ValueError("No compatible ODBC driver found for SQL Server.")
             
@@ -86,20 +87,21 @@ class Client:
                         f"PWD={self.password};"
                         f"TrustServerCertificate=yes;"
                     )
-                    if verbose == 1:
-                        print(f"Successfully connected using driver: {driver}")
+                    note = f'Successfully connected using driver: {driver}'
                     break  # Connection successful, exit the loop
-                except pyodbc.Error as e:
+                except Exception as e:
+                # except pyodbc.Error as e:
                     # If this is the last available driver and it fails, raise the error
                     if i == len(drivers) - 1:
                         raise RuntimeError(f"Failed to connect to SQL Server with available drivers. Last error: {e}")
         else:
             raise NotImplementedError("Engine not supported")
+        
         # Create cursor
         self.cursor = self.conn.cursor()
         
         if verbose == 1:
-            print('Connection established successfully !')
+            print(note)
 
     def test_connection(self, verbose=1):
         """
