@@ -82,7 +82,15 @@ HOST = "localhost"
 PORT = "5432"
 DATABASE = "postgres"
 USER = "postgres"
-PASSWORD = "admin"
+PASSWORD = "Password123"
+
+# SQL Server Example
+ENGINE = "sqlserver"
+HOST = "localhost"
+PORT = "1433"
+DATABASE = "master"
+USER = "sa"
+PASSWORD = "Password123"
 
 # Setup client
 client = db.Client(host=HOST, port=PORT, database=DATABASE, username=USER, password=PASSWORD, engine=ENGINE)

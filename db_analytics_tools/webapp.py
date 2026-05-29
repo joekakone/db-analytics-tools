@@ -175,7 +175,7 @@ class DBAnalyticsUI:
             is_at_home = st.session_state.active_module is None
             if not is_at_home:
                 st.markdown("---")
-                if st.button("🏠 Back to Home", type="tertiary", use_container_width=True):
+                if st.button("🏠 Back to Home", type="tertiary", width='stretch'):
                     st.session_state.active_module = None
                     st.rerun()
             st.markdown("---")
@@ -266,11 +266,14 @@ class DBAnalyticsUI:
                 st.warning("No scheduled jobs found.", width='stretch')
                 # return
             else:
-                # st.subheader("Manage Jobs 🛠️")
-                
                 try:
                     click_on_preview_job = False
                     selected_job = st.selectbox("Select a job for action", cron_jobs['id'].unique())
+                    selected_job = selected_job.replace("DB_TOOLS_ID:", "")
+                    selected_job_df = cron_jobs[cron_jobs['id'] == selected_job]
+                    selected_job_command = selected_job_df.iloc[0]['command']
+                    selected_job_schedule_interval = selected_job_df.iloc[0]['schedule_interval']
+                    is_disabled = selected_job_df.iloc[0]['raw'].startswith("#")
                     
                     c1, c2, c3 = st.columns(3)
                     
@@ -278,32 +281,41 @@ class DBAnalyticsUI:
                         with st.form("reschedule_job", clear_on_submit=False, border=False):
                             schedule_interval = st.text_input("Reschedule Job", placeholder="e.g. 0 0 * * *")
                             if st.form_submit_button("📝 Reschedule", width='stretch'):
-                                pass
-                                # client.execute(f"ALTER TABLE {selected_job} RENAME TO {schedule_interval}")
-                                # st.success(f"Job renamed to {schedule_interval}.")
+                                cron_manager.update(
+                                    comment=selected_job,
+                                    new_cmd=selected_job_command,
+                                    new_schedule=schedule_interval
+                                )
+                                st.success(f"Job rescheduled to {schedule_interval}.")
 
                     with c2:
                         with st.form("update_command", clear_on_submit=False, border=False):
                             job_command = st.text_input("Update Job Command", placeholder="e.g. db_cli --engine greenplum --host localhost --port 5432 --database cdrfw --user joekakone --password mypassword --start 3 --stop 1 --freq m --functions prod.fn_preprocess_sales prod.fn_agregate_sales")
                             if st.form_submit_button("📝 Update Command", width='stretch'):
-                                pass
-                                # client.execute(f"ALTER TABLE {selected_job} SET SCHEMA {new_schema}")
-                                # st.success(f"Table moved to schema {new_schema}.")
+                                cron_manager.update(
+                                    comment=selected_job,
+                                    new_cmd=job_command,
+                                    new_schedule=selected_job_schedule_interval
+                                )
+                                st.success(f"Job command updated to {job_command}.")
 
                     with c3:
                         st.markdown('<div style="margin-bottom: 0.15rem;"><span style="font-size: 14px; margin-bottom: 0rem;">⚠️ Use with caution !</span></div>', unsafe_allow_html=True)
-                        if st.button("🗑️ Disable Job", type="primary", width='stretch'):
-                            pass
-                            # client.execute(f"TRUNCATE {selected_job}")
-                            # st.warning(f"Table {selected_job} truncated.")
+                        if is_disabled:
+                            if st.button("✅ Enable Job", width='stretch'):
+                                cron_manager.enable(comment=selected_job)
+                                st.success(f"Job {selected_job} enabled.")
+                        else:
+                            if st.button("🗑️ Disable Job", type="primary", width='stretch'):
+                                cron_manager.disable(comment=selected_job)
+                                st.success(f"Job {selected_job} disabled.")
 
                         if st.button("🗑️ Delete Job", type="primary", width='stretch'):
-                            pass
-                            # client.execute(f"DROP TABLE {selected_job}")
-                            # st.error(f"Table {selected_job} deleted.")
+                            cron_manager.delete(comment=selected_job)
+                            st.error(f"Job {selected_job} deleted.")
                     
                     if click_on_preview_job:
-                        # st.dataframe(df_preview, width='stretch', hide_index=True)
+                        st.dataframe(selected_job_df, width='stretch', hide_index=True)
                         click_on_preview_job = False
 
                 except Exception as e:
@@ -311,7 +323,6 @@ class DBAnalyticsUI:
 
         
         with tabs[1]:
-            # st.subheader("Schedule a job 📅")
             with st.form("schedule_job_form", clear_on_submit=True, border=False):
                 job_command = st.text_input("Command to Schedule", placeholder="e.g. db_cli --engine greenplum --host XX.XXX.XX.XXX --port 5432 --database cdrfw --user joekakone --password Axian2580 --start 2026-01-01 --stop 2026-05-01 --functions bibox.fn_gros_ad_lu_agents bibox.fn_gros_ad_lu_agents_month_alignement --frequency m")
                 job_schedule = st.text_input("Cron Schedule", placeholder="e.g. 0 0 * * *")
@@ -541,7 +552,7 @@ class DBAnalyticsUI:
         
         return output_pipelines
     
-    def process_function(self, selected_pipeline, start_date, stop_date, freq, reverse=False, pause=0, streamlit=True):
+    def process_function(self, selected_pipeline, start_date, stop_date, freq, reverse=False, pause=0, retries=0, streamlit=True):
         """
         Executes the selected pipeline with the provided parameters.
 
@@ -575,6 +586,7 @@ class DBAnalyticsUI:
                 freq=freq,
                 reverse=reverse,
                 pause=pause,
+                retries=retries,
                 streamlit=streamlit
             )
         elif pipeline_type == "multiple":
@@ -585,6 +597,7 @@ class DBAnalyticsUI:
                 freq=freq,
                 reverse=reverse,
                 pause=pause,
+                retries=retries,
                 streamlit=streamlit
             )
         else:
@@ -601,9 +614,9 @@ class DBAnalyticsUI:
     #################################################################################################################################
     def db_page_summary(self):
         """
-        Interface de résumé des données.
+        Data summary interface.
         """
-        st.header("DB Summary ⚡")
+        st.header("DB Summary 🏠")
         client = st.session_state.current_client
         
         tables = client.get_tables(include_all=True, include_size=False)
@@ -695,6 +708,7 @@ class DBAnalyticsUI:
         """
         st.header("Execution Process ⚡")
         
+        st.markdown("---")
         
         #############################################################################################################################
         # Pipeline Selection
@@ -726,6 +740,7 @@ class DBAnalyticsUI:
             with col3:
                 freq_label = st.selectbox("Frequency", list(db.utils.FREQ.keys()))
                 freq = db.utils.FREQ[freq_label]
+                retries = st.number_input("Retries", min_value=0, max_value=3, value=0)
 
             submit_execution = st.form_submit_button("Run", type="primary", width='stretch')
             if submit_execution:
@@ -737,6 +752,9 @@ class DBAnalyticsUI:
                 
                 reverse = (direction == "Reverse")
                 
+                #####################################################################################################################
+                # Execution with error handling
+                #####################################################################################################################
                 try:
                     result = self.process_function(
                         selected_pipeline,
@@ -744,16 +762,19 @@ class DBAnalyticsUI:
                         stop_date=stop_date,
                         freq=freq,
                         reverse=reverse,
-                        pause=pause
+                        pause=pause,
+                        retries=retries
                     )
 
                     status_text = st.empty()
+                    st.markdown("---")
                     status_text.write(f"<span style='font-family: Consolas; font-style: bold;'>{result}</span>", unsafe_allow_html=True)
                     st.balloons()
                 except OperationalError:
                     st.error("Operational Error !")
                 except Exception as e:
                     st.error(f"An error occurred: {e}")
+                #####################################################################################################################
 
     def db_page_sessions(self):
         """
@@ -777,8 +798,9 @@ class DBAnalyticsUI:
                     
                     if submit_kill:
                         target_pid = pid_to_kill
-                        client.cancel_query(target_pid)
                         st.success(f"Signal sent to PID {target_pid}")
+                        client.cancel_query(target_pid)
+                        time.sleep(10) # Wait a bit for the session to be killed before refreshing the session list
 
             with col2:
                 st.subheader("Terminate group of sessions")
@@ -861,11 +883,29 @@ class DBAnalyticsUI:
         #############################################################################################################################
         # Upload
         #############################################################################################################################
-        file_ok = False
-        upload_file_preview = None
         with col1:
+            file_ok = False
+            upload_file_preview = None
+            
             st.subheader("Upload data from file")
             file = st.file_uploader("Upload a file", type=["csv", "xlsx"])
+            
+            # Cache keys
+            cached_upload_df_key = "upload_cached_preview_df"
+            cached_upload_filename_key = "upload_cached_filename"
+            
+            if file:
+                if cached_upload_filename_key in st.session_state:
+                    if st.session_state[cached_upload_filename_key] != file.name:
+                        st.session_state.pop(cached_upload_df_key, None)
+                        st.session_state.pop(cached_upload_filename_key, None)
+            else:
+                st.session_state.pop(cached_upload_df_key, None)
+                st.session_state.pop(cached_upload_filename_key, None)
+
+            
+            #########################################################################################################################
+            file_ok = False
             if file and file.name.endswith(".csv"):
                 colsep, coldec = st.columns(2)
                 with colsep:
@@ -880,36 +920,60 @@ class DBAnalyticsUI:
                 st.error("Invalid file type. Please upload a valid CSV or Excel file.")
             else:
                 st.error("Please upload a valid CSV or Excel file.")
+            #########################################################################################################################
 
+            
+            #########################################################################################################################
             if file_ok:
+                #####################################################################################################################
                 if st.button("Preview"):
-                    if file and file.name.endswith(".csv"):
-                        try:
-                            upload_file_preview = pd.read_csv(file, sep=separator, decimal=decimal)
-                        except Exception as e:
-                            st.error(e, width='stretch')
-                    elif file and file.name.endswith(".xlsx"):
-                        try:
-                            upload_file_preview = pd.read_excel(file, sheet_name=sheet_name)
-                        except Exception as e:
-                            st.error(e, width='stretch')
+                    try:
+                        if file and file.name.endswith(".csv"):
+                            preview_df = pd.read_csv(file, sep=separator, decimal=decimal)
+                        else:
+                            preview_df = pd.read_excel(file, sheet_name=sheet_name)
+                        
+                        # Update cache
+                        st.session_state[cached_upload_df_key] = preview_df
+                        st.session_state[cached_upload_filename_key] = file.name
+                    except Exception as e:
+                        st.error(e, width='stretch')
+                #####################################################################################################################
+                
+                
+                #####################################################################################################################
+                if cached_upload_df_key in st.session_state:
+                    upload_file_preview = st.session_state[cached_upload_df_key]
+                    # Show table
                     st.dataframe(upload_file_preview.head(), width='stretch', hide_index=True)
                 
+                    # Destination table
                     destination_table = st.text_input("Destination Table")
+                    
                     if st.button("Upload Data"):
-                        print("Loading data....................")
-                        db.utils.dataframe_to_db(
-                            dataframe=upload_file_preview,
-                            db_client=client,
-                            destination_table=destination_table,
-                            if_exists="replace", ## Ensure table is truncated if needed
-                            chunksize=50000
-                        )
-                        print(f"Data insert to {destination_table}")
-                        st.success(f"Data insert to {destination_table}")
+                        if not destination_table.strip():
+                            st.error("Please enter a valid destination table.")
+                        else:
+                            try:
+                                with st.spinner("Loading data into database..."):
+                                    db.utils.dataframe_to_db(
+                                        dataframe=upload_file_preview,
+                                        db_client=client,
+                                        destination_table=destination_table,
+                                        if_exists="replace", ## Ensure table is truncated if needed
+                                        chunksize=50000
+                                    )
+                                print(f"Data insert to {destination_table}")
+                                st.success(f"Data insert to {destination_table}", width='stretch')
+                                
+                                st.session_state.pop(cached_upload_df_key, None)
+                                st.session_state.pop(cached_upload_filename_key, None)
+                            except Exception as e:
+                                st.error(f"Database insertion failed: {e}")
 
             file_ok = False
             upload_file_preview = None
+        #############################################################################################################################
                 
 
         #############################################################################################################################
@@ -919,20 +983,54 @@ class DBAnalyticsUI:
             st.subheader("Export data from table")
             tables = client.get_tables(include_all=True, include_size=False)
             
-            selected_table = st.selectbox("Select the table to export", tables['full_tablename'].unique())
-            if st.button("Preview table"):
-                df_preview = client.sample_table(selected_table, 10)
-                st.dataframe(df_preview, width='stretch', hide_index=True)
-                csv_data = df_preview.to_csv(index=False, sep=';', encoding='utf-8')
+            selected_table = st.selectbox(
+                "Select the table to export", 
+                tables['full_tablename'].unique(),
+                key="export_target_table_selectbox"
+            )
+            
+            # Save keys
+            cached_df_key = "export_cached_preview_df"
+            cached_table_key = "export_cached_preview_table_name"
+            
+            if cached_table_key in st.session_state:
+                if st.session_state[cached_table_key] != selected_table:
+                    # Clean cache if user selects another table to avoid confusion
+                    st.session_state.pop(cached_df_key, None)
+                    st.session_state.pop(cached_table_key, None)
+            
+            # Preview button
+            if st.button("Preview table", width='stretch'):
+                try:
+                    # Sample the table, then store the data and the name of the active table
+                    df_preview = client.sample_table(selected_table, 10)
+                    st.session_state[cached_df_key] = df_preview
+                    st.session_state[cached_table_key] = selected_table
+                except Exception as e:
+                    st.error(f"Failed to fetch preview: {e}")
+            
+            # If the cache contains a preview for the active table, display it and the download button
+            if cached_df_key in st.session_state:
+                df_preview_cached = st.session_state[cached_df_key]
+                
+                st.dataframe(df_preview_cached, width='stretch', hide_index=True)
+                
+                # Prepare CSV data and filename for download
+                csv_data = df_preview_cached.to_csv(index=False, sep=';', encoding='utf-8')
+                file_suffix = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+                filename_csv = f"{selected_table.replace('.', '__')}_{file_suffix}_export.csv"
+                
+                # Download button
                 st.download_button(
-                    'Export Table 💾',
+                    label='Export Table 💾',
                     data=csv_data,
-                    file_name=f"{selected_table.replace('.', '__') + datetime.datetime.now().strftime(('%Y%m%d%H%M%S'))}_export.csv",
+                    file_name=filename_csv,
                     mime="text/csv",
                     help="Click to download the previewed data as a CSV file",
                     width='stretch'
                 )
-
+        #############################################################################################################################
+                    
     def db_page_query_console(self):
         """
         Exploration des tables, tailles et gestion basique.
@@ -940,6 +1038,7 @@ class DBAnalyticsUI:
         st.header("Query Console 🎮")
         client = st.session_state.current_client
         
+        st.markdown("---")
         query = st.text_area(label="Drop your query (without ; at the end)", value="""select * from bibox.airtime_lu_erecharge_product_lemaplus""")
         
         if st.button("Run query", type="primary", width='stretch'):

@@ -25,7 +25,8 @@ class ETL:
 
     :param client: An instance of the `Client` class for connecting to the database.
     """
-
+    retry_delay = 10  # Delay in seconds between retries
+    
     def __init__(self, client):
         try:
             assert isinstance(client, db.Client)
@@ -104,7 +105,25 @@ class ETL:
 
         return dates_ranges
 
-    def run(self, function, start_date=None, stop_date=None, freq=None, dates=None, pause=1, reverse=False, streamlit=False):
+    def execute_with_retries(self, query, retries):
+        """
+        Execute a database query with a specified number of retries in case of failure.
+
+        :param query: The SQL query to execute.
+        :param retries: The maximum number of retry attempts in case of failure.
+        :return: The result of the query execution if successful, or raises an exception if all retries fail.
+        """
+        retries_count = 0
+        while retries_count <= retries:
+            try:
+                self.client.execute(query)
+            except Exception as e:
+                retries_count += 1
+                if retries_count > retries:
+                    raise Exception("Something went wrong!" + str(e))
+                time.sleep(self.retry_delay)  # Wait for the specified delay before retrying
+
+    def run(self, function, start_date=None, stop_date=None, freq=None, dates=None, reverse=False, pause=0, retries=0, streamlit=False):
         """
         Run a specified SQL function for a range of dates.
 
@@ -149,10 +168,11 @@ class ETL:
             query = f"select {function}('{date}'::timestamp);" if freq.upper() == 'H' else f"select {function}('{date}'::date);"
             duration = datetime.datetime.now()
 
-            try:
-                self.client.execute(query)
-            except Exception as e:
-                raise Exception("Something went wrong!")
+            #########################################################################################################################
+            # Execution with retries
+            #########################################################################################################################
+            self.execute_with_retries(query, retries)
+            #########################################################################################################################
 
             duration = datetime.datetime.now() - duration
             progression = i / total_iterations * 100
@@ -164,7 +184,7 @@ class ETL:
                 streamlit_message_output.write(f"<span style='font-family: Consolas;'>{streamlit_message}</span>", unsafe_allow_html=True)
             i += 1
 
-    def run_multiple(self, functions, start_date=None, stop_date=None, freq=None, dates=None, pause=1, reverse=False, streamlit=False):
+    def run_multiple(self, functions, start_date=None, stop_date=None, freq=None, dates=None, reverse=False, pause=0, retries=0, streamlit=False):
         """
         Run multiple specified SQL functions for a range of dates.
 
@@ -219,10 +239,11 @@ class ETL:
                 query = f"select {function}('{date}'::timestamp);" if freq.upper() == 'H' else f"select {function}('{date}'::date);"
                 duration = datetime.datetime.now()
 
-                try:
-                    self.client.execute(query)
-                except Exception as e:
-                    raise Exception("Something went wrong!")
+                #####################################################################################################################
+                # Execution with retries
+                #####################################################################################################################
+                self.execute_with_retries(query, retries)
+                #####################################################################################################################
 
                 duration = datetime.datetime.now() - duration
                 progression = i / total_iterations * 100

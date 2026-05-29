@@ -149,6 +149,46 @@ class CronManager:
             self._write_crontab(new_lines)
         return updated
 
+    def disable(self, comment):
+        """
+        Disables a cron job entry matching the unique comment ID.
+        """
+        lines = self._get_all_lines()
+        updated = False
+        new_lines = []
+
+        for line in lines:
+            if (f"{self.app_id_prefix}{comment}" in line) and (not line.strip().startswith("#")):
+                new_line = f"# {line}".strip()
+                new_lines.append(new_line)
+                updated = True
+            else:
+                new_lines.append(line)
+
+        if updated:
+            self._write_crontab(new_lines)
+        return updated
+
+    def enable(self, comment):
+        """
+        Enables a cron job entry matching the unique comment ID.
+        """
+        lines = self._get_all_lines()
+        updated = False
+        new_lines = []
+
+        for line in lines:
+            if (f"{self.app_id_prefix}{comment}" in line) and (line.strip().startswith("#")):
+                new_line = f"# {line}".strip()
+                new_lines.append(new_line)
+                updated = True
+            else:
+                new_lines.append(line)
+
+        if updated:
+            self._write_crontab(new_lines)
+        return updated
+
     def delete(self, comment):
         """
         Removes a cron job entry matching the unique comment ID.

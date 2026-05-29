@@ -69,11 +69,35 @@ class Client:
                                          password=self.password)
         elif self.engine == "sqlserver":
             import pyodbc
-            self.conn = pyodbc.connect(f"DRIVER={{ODBC Driver 17 for SQL Server}};" \
-                                       f"SERVER={self.host};" \
-                                       f"DATABASE={self.database};" \
-                                       f"UID={self.username};" \
-                                       f"PWD={self.password};")
+            
+            # Detect available ODBC drivers for SQL Server
+            drivers = [d for d in pyodbc.drivers() if "ODBC Driver" in d or "SQL Server" in d]
+            if not drivers:
+                raise ValueError("No compatible ODBC driver found for SQL Server.")
+            
+            # Try to connect using each available driver until a successful connection is established
+            for i, driver in enumerate(drivers):
+                try:
+                    self.conn = pyodbc.connect(
+                        f"DRIVER={{{driver}}};"
+                        f"SERVER={self.host};"
+                        f"DATABASE={self.database};"
+                        f"UID={self.username};"
+                        f"PWD={self.password};"
+                    )
+                    if verbose == 1:
+                        print(f"Successfully connected using driver: {driver}")
+                    break  # Connection successful, exit the loop
+                except pyodbc.Error as e:
+                    # If this is the last available driver and it fails, raise the error
+                    if i == len(drivers) - 1:
+                        raise RuntimeError(f"Failed to connect to SQL Server with available drivers. Last error: {e}")
+            else:
+                self.conn = pyodbc.connect(f"DRIVER={{{drivers[0]}}};" \
+                                        f"SERVER={self.host};" \
+                                        f"DATABASE={self.database};" \
+                                        f"UID={self.username};" \
+                                        f"PWD={self.password};")
         else:
             raise NotImplementedError("Engine not supported")
         # Create cursor
