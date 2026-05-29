@@ -138,7 +138,8 @@ class Client:
         if self.engine in ("postgres", "greenplum"):
             self.uri = f"postgresql+psycopg2://{self.username}:{password}@{self.host}:{self.port}/{self.database}"
         elif self.engine == "sqlserver":
-            self.uri = f"mssql+pyodbc://{self.username}:{password}@{self.host}:{self.port}/{self.database}?driver={self.driver}"
+            odbc_params = urllib.parse.quote_plus("TrustServerCertificate=yes")
+            self.uri = f"mssql+pyodbc://{self.username}:{password}@{self.host}:{self.port}/{self.database}?driver={self.driver}&odbc_connect={odbc_params}"
         else:
             raise NotImplementedError("Engine not supported")
         
