@@ -93,12 +93,6 @@ class Client:
                     # If this is the last available driver and it fails, raise the error
                     if i == len(drivers) - 1:
                         raise RuntimeError(f"Failed to connect to SQL Server with available drivers. Last error: {e}")
-            else:
-                self.conn = pyodbc.connect(f"DRIVER={{{drivers[0]}}};" \
-                                        f"SERVER={self.host};" \
-                                        f"DATABASE={self.database};" \
-                                        f"UID={self.username};" \
-                                        f"PWD={self.password};")
         else:
             raise NotImplementedError("Engine not supported")
         # Create cursor
