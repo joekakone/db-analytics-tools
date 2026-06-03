@@ -4,6 +4,10 @@
     DB Analytics Tools Data Integration
 """
 
+
+#####################################################################################################################################
+# Package Imports
+#####################################################################################################################################
 import time
 import datetime
 
@@ -12,11 +16,15 @@ import pandas as pd
 import streamlit as st
 
 import db_analytics_tools as db
+#####################################################################################################################################
 
 
-NBCHAR = 70
+NBCHAR = 36
 
 
+#####################################################################################################################################
+# DB Analytics ETL Class
+#####################################################################################################################################
 class ETL:
     """
     SQL Based ETL (Extract, Transform, Load) Class
@@ -117,13 +125,59 @@ class ETL:
         while retries_count <= retries:
             try:
                 self.client.execute(query)
+                break  # Exit the loop if the query executed successfully
             except Exception as e:
                 retries_count += 1
                 if retries_count > retries:
                     raise Exception("Something went wrong!" + str(e))
                 time.sleep(self.retry_delay)  # Wait for the specified delay before retrying
 
-    def run(self, function, start_date=None, stop_date=None, freq=None, dates=None, reverse=False, pause=0, retries=0, streamlit=False):
+    def build_run_query(self, mode, function, date, freq):
+        """
+        Build the SQL query for running a function or procedure based on the specified mode.
+
+        :param mode: The mode of execution, either "function" or "procedure".
+        :param function: The name of the function or procedure to execute.
+        :param date: The date to use in the query.
+        :param freq: The frequency of the dates ('H' for hourly, 'D' for daily).
+        :return: A string representing the SQL query to execute.
+        """
+        mapping = {
+            "postgres": {
+                "function": "select",
+                "procedure": "call"
+            },
+            "greenplum": {
+                "function": "select",
+                "procedure": "call"
+            },
+            "mssql": {
+                "function": "SELECT",
+                "procedure": "EXEC"
+            }
+        }
+        try:
+            # Fixed: Harmonized self.client.engine usage
+            command_ = mapping[self.client.engine][mode]
+            
+            if self.client.engine in ("postgres", "greenplum"):
+                date_ = f"'{date}'::timestamp" if freq.upper() == 'H' else f"'{date}'::date"
+                query_template = f"{command_} {function}({date_});"
+                
+            elif self.client.engine == "mssql":
+                if mode == "procedure":
+                    date_ = f"'{date}'"
+                    query_template = f"{command_} {function} {date_};"
+                else:
+                    raise Exception("Functions are not supported for MSSQL in this implementation.")
+            else:
+                raise NotImplementedError("Database engine not supported!")
+                            
+            return query_template
+        except KeyError:
+            raise NotImplementedError("Mode not supported!")
+
+    def run(self, function, start_date=None, stop_date=None, freq=None, dates=None, reverse=False, pause=0, retries=0, mode="function", streamlit=False):
         """
         Run a specified SQL function for a range of dates.
 
@@ -142,6 +196,7 @@ class ETL:
 
         # Total Iterations
         total_iterations = len(dates_ranges)
+        len_total_iterations = len(str(total_iterations))
 
         print(f'Function    : {function}')
         if streamlit:            
@@ -159,13 +214,14 @@ class ETL:
             # Pause
             time.sleep(pause)
 
-            execuxtion_time = f"[Running Date: {date}] [Function: {function}] "
+            execuxtion_time = f"[{str(i).rjust(len_total_iterations, '0')}/{str(total_iterations)}] [{date}] [{function}] "
             print(execuxtion_time, end="", flush=True)
             if streamlit:
                 streamlit_message += execuxtion_time
                 streamlit_message_output.write(f"<span style='font-family: Consolas;'>{streamlit_message}</span>", unsafe_allow_html=True)
 
-            query = f"select {function}('{date}'::timestamp);" if freq.upper() == 'H' else f"select {function}('{date}'::date);"
+            # query = f"{self.build_run_query(mode)} {function}('{date}'::timestamp);" if freq.upper() == 'H' else f"{self.build_run_query(mode)} {function}('{date}'::date);"
+            query = self.build_run_query(mode, function, date, freq)
             duration = datetime.datetime.now()
 
             #########################################################################################################################
@@ -177,14 +233,14 @@ class ETL:
             duration = datetime.datetime.now() - duration
             progression = i / total_iterations * 100
             progression = f"{progression:.2f}%"
-            execuxtion_time = f"Execution time: {duration} [Prog.{progression.rjust(7, '.')}]"
+            execuxtion_time = f"[{duration}] [Prog.{progression.rjust(7, '.')}]"
             print(execuxtion_time)
             if streamlit:
                 streamlit_message += execuxtion_time + "<br>"
                 streamlit_message_output.write(f"<span style='font-family: Consolas;'>{streamlit_message}</span>", unsafe_allow_html=True)
             i += 1
 
-    def run_multiple(self, functions, start_date=None, stop_date=None, freq=None, dates=None, reverse=False, pause=0, retries=0, streamlit=False):
+    def run_multiple(self, functions, start_date=None, stop_date=None, freq=None, dates=None, reverse=False, pause=0, retries=0, mode="function", streamlit=False):
         """
         Run multiple specified SQL functions for a range of dates.
 
@@ -202,6 +258,7 @@ class ETL:
 
         # Total Iterations
         total_iterations = len(dates_ranges) * len(functions)
+        len_total_iterations = len(str(total_iterations))
 
         print(f'Functions   : {functions}')
         if streamlit:            
@@ -220,7 +277,7 @@ class ETL:
         # Send query to the server
         for date in dates_ranges:
             # Show date separator line
-            execuxtion_time = "*" * (NBCHAR + max_fun + 15)
+            execuxtion_time = "=" * (NBCHAR + (len_total_iterations * 2) + max_fun + 15)
             print(execuxtion_time)
             if streamlit:
                 streamlit_message += execuxtion_time + "<br>"
@@ -230,13 +287,13 @@ class ETL:
                 # Pause
                 time.sleep(pause)
 
-                execuxtion_time = f"[Running Date: {date}] [Function: {function.ljust(max_fun, '.')}] "
+                execuxtion_time = f"[{str(i).rjust(len_total_iterations, '0')}/{str(total_iterations)}] [{date}] [{function.ljust(max_fun, '.')}] "
                 print(execuxtion_time, end="", flush=True)
                 if streamlit:
                     streamlit_message += execuxtion_time
                     streamlit_message_output.write(f"<span style='font-family: Consolas;'>{streamlit_message}</span>", unsafe_allow_html=True)
 
-                query = f"select {function}('{date}'::timestamp);" if freq.upper() == 'H' else f"select {function}('{date}'::date);"
+                query = self.build_run_query(mode, function, date, freq)
                 duration = datetime.datetime.now()
 
                 #####################################################################################################################
@@ -248,7 +305,7 @@ class ETL:
                 duration = datetime.datetime.now() - duration
                 progression = i / total_iterations * 100
                 progression = f"{progression:.2f}%"
-                execuxtion_time = f"Execution time: {duration} [Prog.{progression.rjust(7, '.')}]"
+                execuxtion_time = f"[{duration}] [Prog.{progression.rjust(7, '.')}]"
                 print(execuxtion_time)
                 if streamlit:
                     streamlit_message += execuxtion_time + "<br>"
@@ -257,7 +314,7 @@ class ETL:
 
 
         # Show final date separator line
-        execuxtion_time = "*" * (NBCHAR + max_fun + 15)
+        execuxtion_time = "=" * (NBCHAR + (len_total_iterations * 2) + max_fun + 15)
         print(execuxtion_time)
         if streamlit:
             streamlit_message += execuxtion_time + "<br>"
@@ -273,7 +330,7 @@ def create_etl(host, port, database, username, password, engine, keep_connection
     :param database: The name of the database to connect to.
     :param username: The username for authenticating the database connection.
     :param password: The password for authenticating the database connection.
-    :param engine: The database engine to use, currently supports 'postgres' and 'sqlserver'.
+    :param engine: The database engine to use, currently supports 'postgres' and 'mssql'.
     :param keep_connection: If True, the connection will be maintained until explicitly closed. If False, the connection
                            will be opened and closed for each database operation (default is False).
     :return: An ETL instance for performing data extraction, transformation, and loading.
