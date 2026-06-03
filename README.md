@@ -85,7 +85,7 @@ USER = "postgres"
 PASSWORD = "Password123"
 
 # SQL Server Example
-ENGINE = "sqlserver"
+ENGINE = "mssql"
 HOST = "localhost"
 PORT = "1433"
 DATABASE = "master"

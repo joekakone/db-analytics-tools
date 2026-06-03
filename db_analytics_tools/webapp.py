@@ -8,6 +8,9 @@
 """
 
 
+#####################################################################################################################################
+# Package Imports
+#####################################################################################################################################
 import os
 import json
 import time
@@ -15,19 +18,18 @@ import datetime
 import argparse
 import subprocess
 import tempfile
+import threading
 
 import streamlit as st
 import pandas as pd
 import matplotlib.pyplot as plt
 from psycopg2 import OperationalError
-from sqlalchemy import text
 
 import db_analytics_tools as db
 import db_analytics_tools.integration as dbi
 from db_analytics_tools.airflow import AirflowRESTAPI
-
 from db_analytics_tools.scheduler import CronManager
-
+#####################################################################################################################################
 
 
 #####################################################################################################################################
@@ -66,7 +68,8 @@ class DBAnalyticsUI:
             "current_client": None,
             "current_server_name": None,
             "active_module": None,
-            "current_airflow": None
+            "current_airflow": None,
+            "run_custom": False,
         }
         
         for key, value in initial_state.items():
@@ -129,7 +132,7 @@ class DBAnalyticsUI:
                 accept = st.checkbox("I accept the terms and conditions", value=False)
                 
                 # Authentication Logic
-                if st.button("Login", width='stretch'):
+                if st.button("Login", type="secondary", width='stretch'):
                     expected_answer = self.config.get("auth_config", {}).get("secret_answer", "")
                     if user == "" or answer == "":
                         st.error("Missing credentials!", width='stretch')
@@ -240,14 +243,16 @@ class DBAnalyticsUI:
         #############################################################################################################################
         # Cron Jobs Management
         #############################################################################################################################
+        st.markdown("---")
+        st.subheader("Scheduled Jobs ⏰")
+        
         cron_manager = CronManager()
         try:
             cron_jobs = cron_manager.read()
         except Exception as e:
-            pass
+            st.error("Maybe your system does not support cron management or an error occurred while fetching cron jobs: " + str(e), width='stretch')
+            return
 
-        st.markdown("---")
-        st.subheader("Scheduled Jobs ⏰")
         if cron_jobs.empty:
             st.warning("No scheduled jobs found.", width='stretch')
             # return
@@ -269,10 +274,10 @@ class DBAnalyticsUI:
                 try:
                     click_on_preview_job = False
                     selected_job = st.selectbox("Select a job for action", cron_jobs['id'].unique())
-                    selected_job = selected_job.replace("DB_TOOLS_ID:", "")
+                    selected_job_id = selected_job.replace("DB_TOOLS_ID:", "")
                     selected_job_df = cron_jobs[cron_jobs['id'] == selected_job]
-                    selected_job_command = selected_job_df.iloc[0]['command']
-                    selected_job_schedule_interval = selected_job_df.iloc[0]['schedule_interval']
+                    selected_job_command = selected_job_df.iloc[0]['cmd']
+                    selected_job_schedule_interval = selected_job_df.iloc[0]['schedule']
                     is_disabled = selected_job_df.iloc[0]['raw'].startswith("#")
                     
                     c1, c2, c3 = st.columns(3)
@@ -282,7 +287,7 @@ class DBAnalyticsUI:
                             schedule_interval = st.text_input("Reschedule Job", placeholder="e.g. 0 0 * * *")
                             if st.form_submit_button("📝 Reschedule", width='stretch'):
                                 cron_manager.update(
-                                    comment=selected_job,
+                                    comment=selected_job_id,
                                     new_cmd=selected_job_command,
                                     new_schedule=schedule_interval
                                 )
@@ -293,7 +298,7 @@ class DBAnalyticsUI:
                             job_command = st.text_input("Update Job Command", placeholder="e.g. db_cli --engine greenplum --host localhost --port 5432 --database cdrfw --user joekakone --password mypassword --start 3 --stop 1 --freq m --functions prod.fn_preprocess_sales prod.fn_agregate_sales")
                             if st.form_submit_button("📝 Update Command", width='stretch'):
                                 cron_manager.update(
-                                    comment=selected_job,
+                                    comment=selected_job_id,
                                     new_cmd=job_command,
                                     new_schedule=selected_job_schedule_interval
                                 )
@@ -303,15 +308,15 @@ class DBAnalyticsUI:
                         st.markdown('<div style="margin-bottom: 0.15rem;"><span style="font-size: 14px; margin-bottom: 0rem;">⚠️ Use with caution !</span></div>', unsafe_allow_html=True)
                         if is_disabled:
                             if st.button("✅ Enable Job", width='stretch'):
-                                cron_manager.enable(comment=selected_job)
+                                cron_manager.enable(comment=selected_job_id)
                                 st.success(f"Job {selected_job} enabled.")
                         else:
                             if st.button("🗑️ Disable Job", type="primary", width='stretch'):
-                                cron_manager.disable(comment=selected_job)
+                                cron_manager.disable(comment=selected_job_id)
                                 st.success(f"Job {selected_job} disabled.")
 
                         if st.button("🗑️ Delete Job", type="primary", width='stretch'):
-                            cron_manager.delete(comment=selected_job)
+                            cron_manager.delete(comment=selected_job_id)
                             st.error(f"Job {selected_job} deleted.")
                     
                     if click_on_preview_job:
@@ -365,7 +370,7 @@ class DBAnalyticsUI:
         with tabs[1]: self.db_page_execution()
         with tabs[2]: self.db_page_sessions()
         with tabs[3]: self.db_page_tables()
-        with tabs[4]: self.db_page_upload_download()
+        with tabs[4]: self.db_page_migration()
         with tabs[5]: self.db_page_query_console()
     #################################################################################################################################
 
@@ -417,7 +422,7 @@ class DBAnalyticsUI:
         
         # DB Authentication Form
         with st.expander("DB Authentication 🔑", expanded=(st.session_state.current_client is None)):
-            db_engine = st.text_input("Engine", value=database_cfg.get("engine"), placeholder="e.g. postgres, sqlserver")
+            db_engine = st.text_input("Engine", value=database_cfg.get("engine"), placeholder="e.g. postgres, mssql")
             db_host = st.text_input("Host", value=database_cfg.get("host"))
             db_port = st.text_input("Port", value=database_cfg.get("port"))
             db_database = st.text_input("Database", value=database_cfg.get("database"))
@@ -462,7 +467,7 @@ class DBAnalyticsUI:
         """
         Render the Airflow section in the sidebar.
         """
-        airflow_list = self.config.get("airflow_instances", [])
+        airflow_list = self.config.get("airflow_instances", []) + [{"name": "Custom Airflow"}]
         if not airflow_list:
             return
         
@@ -476,6 +481,8 @@ class DBAnalyticsUI:
         
         # Airflow Authentication Form
         with st.expander("Airflow Authentication 🔑", expanded=(st.session_state.current_client is None)):
+            airflow_url = st.text_input("Airflow URL", value=airflow_cfg.get("url"), placeholder="e.g. http://localhost:8080")
+            airflow_api_endpoint = st.text_input("API Endpoint", value=airflow_cfg.get("api_endpoint"), placeholder="e.g. api/v2/")
             airflow_user = st.text_input("Airflow Username")
             airflow_pass = st.text_input("Airflow Password", type="password")
             
@@ -483,8 +490,8 @@ class DBAnalyticsUI:
                 try:
                     # Setup client
                     airflow = AirflowRESTAPI(
-                        base_url=airflow_cfg["url"],
-                        api_endpoint=airflow_cfg["api_endpoint"],
+                        base_url=airflow_url,
+                        api_endpoint=airflow_api_endpoint,
                         username=airflow_user,
                         password=airflow_pass,
                     )
@@ -552,7 +559,7 @@ class DBAnalyticsUI:
         
         return output_pipelines
     
-    def process_function(self, selected_pipeline, start_date, stop_date, freq, reverse=False, pause=0, retries=0, streamlit=True):
+    def process_function(self, selected_pipeline, start_date, stop_date, freq, reverse=False, pause=0, retries=0, mode="function", session_state=None, mail_notification=False, streamlit=True):
         """
         Executes the selected pipeline with the provided parameters.
 
@@ -560,10 +567,13 @@ class DBAnalyticsUI:
         :param start_date: The start date for the pipeline execution.
         :param stop_date: The end date for the pipeline execution.
         :param freq: The frequency of execution (e.g., daily, weekly, monthly).
+        :param mode: The mode of execution.
+        :param mail_notification: Whether to send email notifications.
+        :param session_state: The session state object.
         :return: A result message detailing the selected pipeline and execution parameters.
         """
         
-        if st.session_state.run_custom:
+        if session_state["run_custom"]:
             print("Running custom function")
             pipelines = selected_pipeline.split(";")
             if len(pipelines) == 1:
@@ -573,14 +583,15 @@ class DBAnalyticsUI:
                 pipeline_type = "multiple"
                 pipeline_functions = pipelines
         else:
-            pipeline = st.session_state.pipelines[selected_pipeline]
+            pipeline = session_state["pipelines"][selected_pipeline]
             pipeline_type = pipeline["pipeline_type"]
             pipeline_functions = pipeline["pipeline_functions"]
  
         duration = datetime.datetime.now()
         if pipeline_type == "single":
-            st.session_state.etl.run(
+            session_state["etl"].run(
                 function=pipeline_functions[0],
+                mode=mode,
                 start_date=start_date,
                 stop_date=stop_date,
                 freq=freq,
@@ -590,8 +601,9 @@ class DBAnalyticsUI:
                 streamlit=streamlit
             )
         elif pipeline_type == "multiple":
-            st.session_state.etl.run_multiple(
+            session_state["etl"].run_multiple(
                 functions=pipeline_functions,
+                mode=mode,
                 start_date=start_date,
                 stop_date=stop_date,
                 freq=freq,
@@ -606,6 +618,30 @@ class DBAnalyticsUI:
         duration = datetime.datetime.now() - duration
         result = f"✅ Pipeline: {selected_pipeline} | Total duration: {duration}"
         return result
+    
+    def extract_sub_module(self, df, table=None):
+        """
+        Extracts the sub-module name from a full module path in the 'module' column of the provided DataFrame.
+        The sub-module is defined as the last segment of the module path after splitting by dots.
+
+        :param df: A pandas DataFrame containing a 'module' column with full module paths.
+        :param table: The name of the table for which to generate the filename. If None, a default name will be used.
+        """
+        # Prepare CSV data and filename for download
+        csv_data = df.to_csv(index=False, sep=';', encoding='utf-8')
+        file_prefix = table.replace('.', '__') if table else "table"
+        file_suffix = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
+        filename_csv = f"{file_prefix}_{file_suffix}_export.csv"
+        
+        # Download button
+        st.download_button(
+            label='Export Table 💾',
+            data=csv_data,
+            file_name=filename_csv,
+            mime="text/csv",
+            help="Click to download the previewed data as a CSV file",
+            width='stretch'
+        )
     #################################################################################################################################
 
 
@@ -614,17 +650,17 @@ class DBAnalyticsUI:
     #################################################################################################################################
     def db_page_summary(self):
         """
-        Data summary interface.
+        Database data summary dashboard interface.
         """
         st.header("DB Summary 🏠")
         client = st.session_state.current_client
         
+        # Fetching raw inventory metadata from the active database engine
         tables = client.get_tables(include_all=True, include_size=False)
         nb_schemas = tables['schemaname'].nunique()
         nb_tables = tables['full_tablename'].nunique()
         nb_partitions = tables['partition_count'].sum()
         nb_users = tables['tableowner'].nunique()
-        
         
         sessions = client.show_sessions(include_all=True)
         nb_sessions = sessions['session_id'].nunique()
@@ -638,9 +674,10 @@ class DBAnalyticsUI:
         roles = client.get_roles(include_groups=False)
         nb_roles = roles['rolename'].nunique()
         
-        #############################################################################################################################
+        # =====================================================================
+        # 1. METRICS METADATA BANNER CARDS
+        # =====================================================================
         st.markdown("---")
-        #############################################################################################################################
         col1, col2, col3, col4 = st.columns(4)
     
         with col1:
@@ -659,131 +696,228 @@ class DBAnalyticsUI:
             st.metric(label="Total Users", value=nb_users, border=True)
             st.metric(label="Total Roles", value=nb_roles, border=True)
         
-        #############################################################################################################################
+        # =====================================================================
+        # 2. ANALYTICS CHARTS (DARK-THEME INTEGRATED)
+        # =====================================================================
         st.markdown("---")
-        #############################################################################################################################
-        col1, col2, col3 = st.columns(3)
+        col_ch1, col_ch2, col_ch3 = st.columns(3)
         
-        with col1:
-            counts = tables["schemaname"].value_counts()
-            fig1, ax1 = plt.subplots(figsize=(5, 4))
-            bars1 = ax1.barh(counts.index, counts.values, color='#1f77b4')
-            ax1.bar_label(bars1, padding=3)
+        # Chart styling configuration parameters matching Streamlit Dark Theme
+        plt.rcParams.update({
+            'text.color': '#E0E0E0',
+            'axes.labelcolor': '#E0E0E0',
+            'xtick.color': '#A0A0A0',
+            'ytick.color': '#A0A0A0',
+            'axes.edgecolor': '#404040'
+        })
+        
+        with col_ch1:
+            counts_schema = tables["schemaname"].value_counts()
+            fig1, ax1 = plt.subplots(figsize=(5, 3.8), facecolor='none')
+            ax1.set_facecolor('none')
+            bars1 = ax1.barh(counts_schema.index, counts_schema.values, color='#1f77b4')
+            ax1.bar_label(bars1, padding=3, color='#E0E0E0')
             ax1.spines['right'].set_visible(False)
             ax1.spines['top'].set_visible(False)
-            plt.title("Tables by Schema")
+            ax1.set_title("Tables by Schema", color='#FFFFFF', weight='bold')
             st.pyplot(fig1, width='stretch')
             
-        with col2:
-            counts = tables["tableowner"].value_counts().head(10)
-            fig2, ax2 = plt.subplots(figsize=(5, 4))
-            bars2 = ax2.barh(counts.index, counts.values, color='#1f77b4')
-            ax2.bar_label(bars2, padding=3)
+        with col_ch2:
+            counts_owner = tables["tableowner"].value_counts().head(10)
+            fig2, ax2 = plt.subplots(figsize=(5, 3.8), facecolor='none')
+            ax2.set_facecolor('none')
+            bars2 = ax2.barh(counts_owner.index, counts_owner.values, color='#FF7F0E')
+            ax2.bar_label(bars2, padding=3, color='#E0E0E0')
             ax2.spines['right'].set_visible(False)
             ax2.spines['top'].set_visible(False)
-            plt.title("Tables by Owner")
+            ax2.set_title("Tables by Owner", color='#FFFFFF', weight='bold')
             st.pyplot(fig2, width='stretch')
             
-        with col3:
-            counts = tables["schemaname"].value_counts().head(10)
-            fig3, ax3 = plt.subplots(figsize=(5, 4))
-            bars3 = ax3.barh(counts.index, counts.values, color='#1f77b4')
-            ax3.bar_label(bars3, padding=3)
+        with col_ch3:
+            # Fixed: Replaced duplicated schema chart with actionable Session States
+            state_col = "state" if "state" in sessions.columns else "status"
+            if state_col in sessions.columns:
+                counts_sessions = sessions[state_col].fillna("unknown").value_counts()
+            else:
+                counts_sessions = pd.Series([len(sessions)], index=["active"])
+                
+            fig3, ax3 = plt.subplots(figsize=(5, 3.8), facecolor='none')
+            ax3.set_facecolor('none')
+            bars3 = ax3.barh(counts_sessions.index, counts_sessions.values, color='#2CA02C')
+            ax3.bar_label(bars3, padding=3, color='#E0E0E0')
             ax3.spines['right'].set_visible(False)
             ax3.spines['top'].set_visible(False)
-            plt.title("Tables by Schema")
+            ax3.set_title("Sessions by State", color='#FFFFFF', weight='bold')
             st.pyplot(fig3, width='stretch')
         
-        
+        # =====================================================================
+        # 3. DETAILED INVENTORY DATA DATAFrame & ACTIONS
+        # =====================================================================
         st.markdown("---")
         st.dataframe(tables, width='stretch', hide_index=True)
         
-        
         if st.button("Update DB Summary", type="primary", width='stretch'):
             st.balloons()
-
+            st.rerun()
+    
     def db_page_execution(self):
         """
-        Interface d'exécution de fonctions ou procédures.
+        Execution interface for custom or predefined functions and procedures.
         """
         st.header("Execution Process ⚡")
-        
         st.markdown("---")
-        
-        #############################################################################################################################
-        # Pipeline Selection
-        #############################################################################################################################
-        col_type, col_custom, col_name = st.columns(3)
-        with col_type:
-            mode = st.radio("Object Type", options=["Function", "Procedure"], horizontal=True)
-        with col_custom:
-            st.session_state.run_custom = st.checkbox("Run Custom Function/Procedure", value=True)
-            send_mail_custom = st.checkbox("Activate Email Notification", value=True)
-        with col_name:
-            if st.session_state.run_custom:
-                selected_pipeline = st.text_input("Function/Procedure (Use ; to separate multiple)", placeholder="ex: bibox.fn_generate_report")
-            else:
-                selected_pipeline = st.selectbox("Pipeline", list(st.session_state.pipelines.keys()))
 
-        #############################################################################################################################
-        st.markdown("---")
-        #############################################################################################################################
+        # =====================================================================
+        # 1. PIPELINE & ENGINE SELECTION
+        # =====================================================================
+        col_etl, col_mode, col_notify, col_input = st.columns(4)
+        
+        with col_etl:
+            options = ["Custom", "Predefined Pipelines", "Database Procedures", "Database Functions"]
+            type_etl = st.selectbox(
+                "ETL Type", 
+                options=options if st.session_state.current_client.engine != 'mssql' else options[:-1]
+            )
+            st.session_state.run_custom = (type_etl != "Predefined Pipelines")
             
-        with st.form("run_pipeline", clear_on_submit=False, border=False):
+        with col_mode:
+            # Active only for standard database-managed options
+            mode = st.radio(
+                "Object Type",
+                options=["Function", "Procedure"],
+                horizontal=True,
+                disabled=(type_etl != "Custom" or st.session_state.current_client.engine == 'mssql')
+            ).lower()
+            
+        with col_notify:
+            # Clean layout for notification toggles without redundant checkbox logic
+            mail_notification = st.checkbox("Activate Email Notification", value=True)
+            # Run in background option only for custom mode
+            run_background = st.checkbox(
+                "Run in Background", 
+                value=False, 
+                # disabled=(type_etl == "Custom")
+            )
+            
+        with col_input:
+            # Contextual field rendering based on chosen ETL type
+            if type_etl == "Custom":
+                selected_pipeline = st.text_input(
+                    "Function/Procedure",
+                    placeholder="e.g., bibox.fn_generate_report",
+                    help="Use a semicolon (;) to separate multiple entries"
+                )
+            elif type_etl == "Database Functions":
+                mode = "function"  # Force mode to function for this selection
+                functions_df = st.session_state.current_client.get_functions(include_all=True)
+                functions_df = functions_df[functions_df['type'] == mode]
+                functions_list = functions_df['full_functionname'].unique()
+                selected_pipeline = st.selectbox("Function", list(functions_list))
+            elif type_etl == "Database Procedures":
+                mode = "procedure"  # Force mode to procedure for this selection
+                functions_df = st.session_state.current_client.get_functions(include_all=True)
+                functions_df = functions_df[functions_df['type'] == mode]
+                functions_list = functions_df['full_functionname'].unique()
+                selected_pipeline = st.selectbox("Procedure", list(functions_list))
+            else: # Predefined Pipelines
+                selected_pipeline = st.selectbox("Pipeline", list(st.session_state.pipelines.keys()))
+            
+            # Force mode to procedure for MSSQL since functions are not supported in this implementation
+            if st.session_state.current_client.engine == 'mssql':
+                mode = "procedure"
+
+        st.markdown("---")
+
+        # =====================================================================
+        # 2. EXECUTION PARAMETERS FORM
+        # =====================================================================
+        with st.form("run_pipeline_form", clear_on_submit=False, border=False):
             col1, col2, col3 = st.columns(3)
+            
             with col1:
                 start_date = st.date_input("Start Date")
                 direction = st.selectbox("Execution Order", ["Normal", "Reverse"])
+                
             with col2:
                 stop_date = st.date_input("Stop Date")
-                pause = st.number_input("Pause (secondes)", min_value=0, value=0)
+                pause = st.number_input("Pause (seconds)", min_value=0, value=0)
+                
             with col3:
                 freq_label = st.selectbox("Frequency", list(db.utils.FREQ.keys()))
                 freq = db.utils.FREQ[freq_label]
                 retries = st.number_input("Retries", min_value=0, max_value=3, value=0)
 
-            submit_execution = st.form_submit_button("Run", type="primary", width='stretch')
-            if submit_execution:
-                if not selected_pipeline:
-                    st.error("Please specify the name of the function or procedure.")
-                    return
+            submit_execution = st.form_submit_button("Run Pipeline", type="primary", width='stretch')
 
-                st.markdown("---")
-                
-                reverse = (direction == "Reverse")
-                
-                #####################################################################################################################
-                # Execution with error handling
-                #####################################################################################################################
-                try:
+        # =====================================================================
+        # 3. PROCESSING & EXECUTION HANDLING
+        # =====================================================================
+        if submit_execution:
+            if not selected_pipeline or not selected_pipeline.strip():
+                st.error("Validation Error: Please specify the name of the target function or procedure.")
+                return
+
+            st.markdown("---")
+            reverse_order = (direction == "Reverse")
+            
+            # Copy state
+            state_copy = dict(st.session_state)
+    
+            try:
+                # Run in background if custom and option selected
+                if run_background:# and type_etl == "Custom":
+                    # Run the process in a separate thread to avoid blocking the Streamlit interface
+                    threading.Thread(target=self.process_function, kwargs={
+                        "selected_pipeline": selected_pipeline.strip(),
+                        "start_date": start_date,
+                        "stop_date": stop_date,
+                        "freq": freq,
+                        "reverse": reverse_order,
+                        "pause": pause,
+                        "retries": retries,
+                        "mode": mode,
+                        "session_state": state_copy,
+                        "mail_notification": mail_notification,
+                        "streamlit": False
+                    }).start()
+                    
+                    st.info("⚙️ Running in background. A notification will be sent upon completion. Check logs for progress.")
+                else:
+                    # Execution runner triggering the core processing function
+                    # print(f"Executing pipeline: {selected_pipeline} | Start: {start_date} | Stop: {stop_date} | Freq: {freq_label} | Reverse: {reverse_order} | Pause: {pause}s | Retries: {retries} | Mode: {mode} | Mail Notification: {mail_notification}")
                     result = self.process_function(
-                        selected_pipeline,
+                        selected_pipeline.strip(),
                         start_date=start_date,
                         stop_date=stop_date,
                         freq=freq,
-                        reverse=reverse,
+                        reverse=reverse_order,
                         pause=pause,
-                        retries=retries
+                        retries=retries,
+                        mode=mode,
+                        session_state=state_copy,
+                        mail_notification=mail_notification
                     )
 
-                    status_text = st.empty()
-                    st.markdown("---")
-                    status_text.write(f"<span style='font-family: Consolas; font-style: bold;'>{result}</span>", unsafe_allow_html=True)
+                    # Successful execution display
+                    st.success(f"`Execution completed successfully ! | Result: {result}`")
+                
                     st.balloons()
-                except OperationalError:
-                    st.error("Operational Error !")
-                except Exception as e:
-                    st.error(f"An error occurred: {e}")
+                
+            except OperationalError as oe:
+                st.error(f"Operational Error encountered during execution: {oe}")
+            except Exception as e:
+                st.error(f"An unexpected process error occurred: {e}")
                 #####################################################################################################################
 
     def db_page_sessions(self):
         """
-        Affichage et gestion des sessions actives.
+        Display and manage active database sessions.
         """
         st.header("Current Sessions 🕵️")
         client = st.session_state.current_client
         
         try:
+            # Fetch active sessions from the database client
             sessions = client.show_sessions(include_all=False)
             st.dataframe(sessions, width='stretch', hide_index=True)
             
@@ -792,15 +926,32 @@ class DBAnalyticsUI:
             
             with col1:
                 st.subheader("Terminate session (PID)")
+                
+                # Get unique session IDs
+                available_pids = sessions["session_id"].unique()
+                
+                # Use st.form to batch user input actions
                 with st.form("kill_pid_form", clear_on_submit=False, border=False):
-                    pid_to_kill = st.selectbox("Choose a PID", sessions["session_id"].unique())
+                    # Fixed: Added 'key' anchor to persist selected value across submission state changes
+                    pid_to_kill = st.selectbox(
+                        "Choose a PID", 
+                        options=available_pids,
+                        key="selected_pid_to_terminate"
+                    )
                     submit_kill = st.form_submit_button("Terminate PID", type="secondary", width='stretch')
                     
                     if submit_kill:
                         target_pid = pid_to_kill
-                        st.success(f"Signal sent to PID {target_pid}")
+                        st.success(f"Signal successfully sent to PID {target_pid}")
+                        
+                        # Trigger target termination on the backend
                         client.cancel_query(target_pid)
-                        time.sleep(10) # Wait a bit for the session to be killed before refreshing the session list
+                        
+                        # Wait for the database engine to apply changes before interface update
+                        time.sleep(10)
+                        
+                        # Force rerun to fetch a pristine session list and update the view
+                        st.rerun()
 
             with col2:
                 st.subheader("Terminate group of sessions")
@@ -809,13 +960,17 @@ class DBAnalyticsUI:
                 if st.button("🔥 Locked Sessions", type="primary", width='stretch'):
                     client.cancel_locked_queries()
                     st.warning("Locked Sessions Terminated.", width='stretch')
+                    time.sleep(2)
+                    st.rerun()
 
                 if st.button("🛑 All Sessions", type="primary", width='stretch'):
                     client.cancel_all_queries()
                     st.warning("All Sessions Terminated.", width='stretch')
+                    time.sleep(2)
+                    st.rerun()
 
         except Exception as e:
-            st.error(f"Impossible de récupérer les sessions : {e}")
+            st.error(f"Unable to retrieve active database sessions: {e}")
 
     def db_page_tables(self):
         """
@@ -873,7 +1028,10 @@ class DBAnalyticsUI:
         except Exception as e:
             st.error(f"Erreur d'accès aux tables : {e}")
     
-    def db_page_upload_download(self):
+    def db_page_migration(self):
+        """
+        Displays the data migration page for uploading and managing data files.
+        """
         st.header("Data Migration 📥")
         client = st.session_state.current_client
         
@@ -1015,38 +1173,47 @@ class DBAnalyticsUI:
                 
                 st.dataframe(df_preview_cached, width='stretch', hide_index=True)
                 
-                # Prepare CSV data and filename for download
-                csv_data = df_preview_cached.to_csv(index=False, sep=';', encoding='utf-8')
-                file_suffix = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-                filename_csv = f"{selected_table.replace('.', '__')}_{file_suffix}_export.csv"
-                
-                # Download button
-                st.download_button(
-                    label='Export Table 💾',
-                    data=csv_data,
-                    file_name=filename_csv,
-                    mime="text/csv",
-                    help="Click to download the previewed data as a CSV file",
-                    width='stretch'
-                )
+                self.extract_sub_module(df_preview_cached, selected_table)
         #############################################################################################################################
-                    
+
     def db_page_query_console(self):
         """
-        Exploration des tables, tailles et gestion basique.
+        Exploration of tables, sizing, and basic database management.
         """
         st.header("Query Console 🎮")
         client = st.session_state.current_client
         
         st.markdown("---")
-        query = st.text_area(label="Drop your query (without ; at the end)", value="""select * from bibox.airtime_lu_erecharge_product_lemaplus""")
+        query = st.text_area(
+            label="Drop your query (without ; at the end)",
+            value="""select *
+from public.example_table
+limit 100""",
+        )
         
+        # Initialize session state keys if they don't exist
+        if "query_result_df" not in st.session_state:
+            st.session_state.query_result_df = None
+        if "last_executed_query" not in st.session_state:
+            st.session_state.last_executed_query = None
+
+        # Trigger execution and store the dataframe in session state
         if st.button("Run query", type="primary", width='stretch'):
             try:
-                df = client.read_sql(f"select * from ({query}) foo limit 100")
-                st.dataframe(df, width='stretch', hide_index=True)
+                # Wrap the query to safely enforce a standard preview limit
+                preview_query = f"({query}) AS foo"
+                st.session_state.query_result_df = client.sample_table(preview_query, 100)
+                st.session_state.last_executed_query = query
             except Exception as e:
-                st.error(e, width='stretch')
+                st.session_state.query_result_df = None
+                st.session_state.last_executed_query = None
+                st.error(f"Query execution failed: {e}", width='stretch')
+
+        # Persist the rendering outside of the click event block
+        if st.session_state.query_result_df is not None:
+            st.dataframe(st.session_state.query_result_df, width='stretch', hide_index=True)
+            # Display extraction and download layout seamlessly
+            self.extract_sub_module(st.session_state.query_result_df)
     #################################################################################################################################
 
 
