@@ -8,12 +8,16 @@
 """
 
 
+#####################################################################################################
+# Package Imports
+#####################################################################################################
 import urllib
 import datetime
 import json
 
 import pandas as pd
 from sqlalchemy import create_engine, text
+#####################################################################################################
 
 
 # Frequeny
@@ -36,7 +40,7 @@ class Client:
     :param database: The name of the database to connect to.
     :param username: The username for authenticating the database connection.
     :param password: The password for authenticating the database connection.
-    :param engine: The database engine to use, currently supports 'postgres' and 'sqlserver'.
+    :param engine: The database engine to use, currently supports 'postgres' and 'mssql'.
     :param keep_connection: If True, the connection will be maintained until explicitly closed. If False, the connection
                            will be opened and closed for each database operation (default is False).
     """
@@ -68,7 +72,7 @@ class Client:
                                          user=self.username,
                                          password=self.password)
             note = 'Connection established successfully !'
-        elif self.engine == "sqlserver":
+        elif self.engine == "mssql":
             import pyodbc
             
             # Detect available ODBC drivers for SQL Server
@@ -142,7 +146,7 @@ class Client:
             engine = create_engine(self.uri)
             self.conn = engine.connect().execution_options(stream_results=True)
 
-        elif self.engine == "sqlserver":
+        elif self.engine == "mssql":
             uri = f"mssql+pyodbc://{self.username}:{password}@{self.host}:{self.port}/{self.database}"
 
             engine = create_engine(
@@ -278,7 +282,7 @@ class Client:
         """
         if self.engine in ("postgres", "greenplum"):
             query = f"select * from {table_name} limit {n};"
-        elif self.engine == "sqlserver":
+        elif self.engine == "mssql":
             query = f"SELECT TOP({n}) * FROM {table_name};"
         else:
             raise NotImplementedError("Engine not supported")
@@ -291,8 +295,8 @@ class Client:
 
         This method queries the database to fetch the names of all tables, along with their schema and size information.
 
-        - For PostgreSQL, it retrieves table information from `pg_catalog.pg_tables` and calculates table sizes using `pg_total_relation_size`.
-        - For SQL Server, it retrieves table information from `sys.tables` and calculates table sizes using `sys.dm_db_partition_stats`.
+        - For PostgreSQL/Greenplum, it retrieves table information from `pg_catalog.pg_tables` and calculates table sizes.
+        - For SQL Server, it retrieves table information from `sys.tables`, map partitions metadata, and matches the identical column schema layout.
 
         :raises NotImplementedError: If the database engine is not supported.
         :return: A DataFrame containing table details.
@@ -310,7 +314,7 @@ class Client:
                 ),
                     _partitions as (
                         select parent.relname,
-                                count(*)                                                               partition_count,
+                                count(*)                                                                partition_count,
                                 min(case when child.relname not like '%%extra%%' then child.relname end) min_partition,
                                 max(case when child.relname not like '%%extra%%' then child.relname end) max_partition
                         from pg_inherits
@@ -320,28 +324,67 @@ class Client:
                     )
                 select schemaname,
                     tablename,
-                    schemaname || '.' || tablename                                   full_tablename,
+                    schemaname || '.' || tablename                                                      full_tablename,
                     tableowner,
                     {'pg_size_pretty(size_bytes)' if include_size else 'null'}        size,
                     {'size_bytes::int8' if include_size else 'null'}                  size_bytes,
-                    coalesce(partition_count, 0)                                     partition_count,
-                    coalesce(min_partition, tablename)                               min_partition,
-                    coalesce(max_partition, tablename)                               max_partition,
+                    coalesce(partition_count, 0)                                                     partition_count,
+                    coalesce(min_partition, tablename)                                              min_partition,
+                    coalesce(max_partition, tablename)                                              max_partition,
                     'drop table if exists ' || schemaname || '.' || tablename || ';' drop_query
                 from _sq a
                         left join _partitions b on a.tablename = b.relname
                 order by partition_count desc, schemaname, tablename;
             """
-        elif self.engine == "sqlserver":
-            query = """
+        elif self.engine == "mssql":
+            # Rebuilt SQL Server query to output exact match for the Pandas DataFrame structure expected by UI components
+            query = f"""
+                WITH _raw_size AS (
+                    SELECT 
+                        t.object_id,
+                        SUM(p.reserved_page_count) * 8 * 1024 AS size_bytes
+                    FROM sys.tables t
+                    JOIN sys.dm_db_partition_stats p ON t.object_id = p.object_id
+                    GROUP BY t.object_id
+                ),
+                _partitions AS (
+                    SELECT 
+                        p.object_id,
+                        COUNT(DISTINCT p.partition_number) AS partition_count,
+                        -- SQL Server uses partition numbers rather than sub-table names
+                        'partition_1' AS min_partition,
+                        'partition_' + CAST(COUNT(DISTINCT p.partition_number) AS VARCHAR(10)) AS max_partition
+                    FROM sys.partitions p
+                    GROUP BY p.object_id
+                )
                 SELECT 
-                    s.name + '.' + t.name AS table_name,
-                    SUM(p.reserved_page_count) * 8 * 1024 AS size_bytes
+                    s.name AS schemaname,
+                    t.name AS tablename,
+                    s.name + '.' + t.name AS full_tablename,
+                    -- USER_NAME() maps to the schema or DB principal owner context
+                    COALESCE(pnl.name, USER_NAME(t.principal_id), USER_NAME(s.principal_id), 'dbo') AS tableowner,
+                    {'''
+                    CASE 
+                        WHEN sz.size_bytes >= 1073741824 THEN CAST(CAST(sz.size_bytes / 1073741824.0 AS DECIMAL(10,2)) AS VARCHAR(20)) + ' GB'
+                        WHEN sz.size_bytes >= 1048576 THEN CAST(CAST(sz.size_bytes / 1048576.0 AS DECIMAL(10,2)) AS VARCHAR(20)) + ' MB'
+                        WHEN sz.size_bytes >= 1024 THEN CAST(CAST(sz.size_bytes / 1024.0 AS DECIMAL(10,2)) AS VARCHAR(20)) + ' KB'
+                        ELSE CAST(sz.size_bytes AS VARCHAR(20)) + ' bytes'
+                    END
+                    ''' if include_size else 'NULL'} AS size,
+                    { 'CAST(sz.size_bytes AS BIGINT)' if include_size else 'NULL' } AS size_bytes,
+                    -- If partition_count <= 1, SQL Server treats it as a standard heap/B-tree (0 for UI match)
+                    CASE WHEN pt.partition_count > 1 THEN pt.partition_count ELSE 0 END AS partition_count,
+                    CASE WHEN pt.partition_count > 1 THEN pt.min_partition ELSE t.name END AS min_partition,
+                    CASE WHEN pt.partition_count > 1 THEN pt.max_partition ELSE t.name END AS max_partition,
+                    'DROP TABLE IF EXISTS ' + s.name + '.' + t.name + ';' AS drop_query
                 FROM sys.tables t
-                         JOIN sys.schemas s ON t.schema_id = s.schema_id
-                         JOIN sys.dm_db_partition_stats p ON t.object_id = p.object_id
-                GROUP BY s.name, t.name
-                ORDER BY size_bytes DESC;
+                JOIN sys.schemas s ON t.schema_id = s.schema_id
+                LEFT JOIN sys.database_principals pnl ON t.principal_id = pnl.principal_id
+                LEFT JOIN _raw_size sz ON t.object_id = sz.object_id
+                LEFT JOIN _partitions pt ON t.object_id = pt.object_id
+                WHERE 1 = 1
+                { "AND (USER_NAME(t.principal_id) = USER_NAME() OR USER_NAME(s.principal_id) = USER_NAME() OR s.name = 'dbo')" if not include_all else "" }
+                ORDER BY partition_count DESC, schemaname, tablename;
             """
         else:
             raise NotImplementedError("Engine not supported")
@@ -352,13 +395,14 @@ class Client:
         """
         Retrieves and displays the list of views in the connected database.
 
-        This method queries the database to fetch the names of all views, along with their schema and size information.
+        This method queries the database to fetch the metadata of all views, 
+        matching identical schema outputs across different relational engines.
 
-        - For PostgreSQL, it retrieves table information from `pg_catalog.pg_views`.
-        - For SQL Server, it retrieves table information from `sys.tables` and calculates table sizes using `sys.dm_db_partition_stats`.
+        - For PostgreSQL/Greenplum, it retrieves view definitions from `pg_catalog.pg_views`.
+        - For SQL Server, it maps system views via `sys.views` and extracts source definitions.
 
         :raises NotImplementedError: If the database engine is not supported.
-        :return: A DataFrame containing table details.
+        :return: A DataFrame containing view details.
         """
         if self.engine in ("postgres", "greenplum"):
             query = f"""
@@ -372,16 +416,22 @@ class Client:
                     and {'viewowner = current_user' if not include_all else '1 = 1'}
                 order by schemaname, viewname
             """
-        elif self.engine == "sqlserver":
-            query = """
+        elif self.engine == "mssql":
+            # Rebuilt SQL Server block to target views metadata and output the exact Postgres-like column names
+            query = f"""
                 SELECT 
-                    s.name + '.' + t.name AS table_name,
-                    SUM(p.reserved_page_count) * 8 * 1024 AS size_bytes
-                FROM sys.tables t
-                         JOIN sys.schemas s ON t.schema_id = s.schema_id
-                         JOIN sys.dm_db_partition_stats p ON t.object_id = p.object_id
-                GROUP BY s.name, t.name
-                ORDER BY size_bytes DESC;
+                    s.name AS schemaname,
+                    v.name AS viewname,
+                    s.name + '.' + v.name AS full_viewname,
+                    COALESCE(pnl.name, USER_NAME(v.principal_id), USER_NAME(s.principal_id), 'dbo') AS viewowner,
+                    m.definition AS definition
+                FROM sys.views v
+                JOIN sys.schemas s ON v.schema_id = s.schema_id
+                LEFT JOIN sys.sql_modules m ON v.object_id = m.object_id
+                LEFT JOIN sys.database_principals pnl ON v.principal_id = pnl.principal_id
+                WHERE s.name NOT IN ('sys', 'information_schema') -- Exclude core system schemas
+                { "AND (USER_NAME(v.principal_id) = USER_NAME() OR USER_NAME(s.principal_id) = USER_NAME() OR s.name = 'dbo')" if not include_all else "" }
+                ORDER BY schemaname, viewname;
             """
         else:
             raise NotImplementedError("Engine not supported")
@@ -445,16 +495,43 @@ class Client:
                     and {'pg_get_userbyid(p.proowner) = current_user' if not include_all else '1 = 1'}
                 order by schemaname, functionname
             """
-        elif self.engine == "sqlserver":
-            query = """
+        elif self.engine == "mssql":
+            # Rebuilt SQL Server block to fetch routines metadata matching Postgres schema exactly
+            filter_user = """(CASE 
+                        WHEN COALESCE(pnl.name, USER_NAME(o.principal_id), USER_NAME(s.principal_id)) = 'dbo' 
+                        THEN (SELECT suser_sname(owner_sid) FROM sys.databases WHERE name = DB_NAME())
+                        ELSE COALESCE(pnl.name, USER_NAME(o.principal_id), USER_NAME(s.principal_id), 'dbo')
+                    END = SUSER_NAME())
+            """ if not include_all else "1 = 1"
+            query = f"""
                 SELECT 
-                    s.name + '.' + t.name AS table_name,
-                    SUM(p.reserved_page_count) * 8 * 1024 AS size_bytes
-                FROM sys.tables t
-                         JOIN sys.schemas s ON t.schema_id = s.schema_id
-                         JOIN sys.dm_db_partition_stats p ON t.object_id = p.object_id
-                GROUP BY s.name, t.name
-                ORDER BY size_bytes DESC;
+                    s.name AS schemaname,
+                    o.name AS functionname,
+                    s.name + '.' + o.name AS full_functionname,
+                    CASE 
+                        WHEN COALESCE(pnl.name, USER_NAME(o.principal_id), USER_NAME(s.principal_id)) = 'dbo' 
+                        THEN (SELECT suser_sname(owner_sid) FROM sys.databases WHERE name = DB_NAME())
+                        ELSE COALESCE(pnl.name, USER_NAME(o.principal_id), USER_NAME(s.principal_id), 'dbo')
+                    END AS functionowner,
+                    COALESCE(CAST(t.name AS VARCHAR(50)), 'void') AS result_type,
+                    NULL AS argument_types,
+                    CASE 
+                        WHEN o.type IN ('P', 'PC') THEN 'procedure'
+                        WHEN o.type IN ('FN', 'IF', 'TF', 'FS', 'FT') THEN 'function'
+                        ELSE 'function'
+                    END AS type,
+                    'TSQL' AS language,
+                    m.definition AS source_code
+                FROM sys.objects o
+                JOIN sys.schemas s ON o.schema_id = s.schema_id
+                LEFT JOIN sys.sql_modules m ON o.object_id = m.object_id
+                LEFT JOIN sys.database_principals pnl ON o.principal_id = pnl.principal_id
+                LEFT JOIN sys.parameters p ON o.object_id = p.object_id AND p.parameter_id = 0
+                LEFT JOIN sys.types t ON p.system_type_id = t.system_type_id AND p.user_type_id = t.user_type_id
+                WHERE o.type IN ('P', 'FN', 'IF', 'TF', 'FS', 'FT')
+                AND s.name NOT IN ('sys', 'information_schema')
+                AND {filter_user}
+                ORDER BY schemaname, functionname;
             """
         else:
             raise NotImplementedError("Engine not supported")
@@ -494,16 +571,36 @@ class Client:
                     and {'rolcanlogin' if not include_groups else '1 = 1'}
                 order by is_user desc, rolename
             """
-        elif self.engine == "sqlserver":
-            query = """
+        elif self.engine == "mssql":
+            # Maps database principals, users, permissions, and roles hierarchies 
+            query = f"""
+                WITH _roles_members AS (
+                    SELECT 
+                        m.principal_id AS member_id,
+                        r.name AS role_name
+                    FROM sys.database_role_members rm
+                    JOIN sys.database_principals r ON rm.role_principal_id = r.principal_id
+                    JOIN sys.database_principals m ON rm.member_principal_id = m.principal_id
+                )
                 SELECT 
-                    s.name + '.' + t.name AS table_name,
-                    SUM(p.reserved_page_count) * 8 * 1024 AS size_bytes
-                FROM sys.tables t
-                         JOIN sys.schemas s ON t.schema_id = s.schema_id
-                         JOIN sys.dm_db_partition_stats p ON t.object_id = p.object_id
-                GROUP BY s.name, t.name
-                ORDER BY size_bytes DESC;
+                    dp.name AS rolename,
+                    CAST(dp.is_fixed_role AS BIT) AS is_superuser,
+                    CAST(0 AS BIT) AS can_create_role,
+                    CAST(0 AS BIT) AS can_create_db,
+                    CASE WHEN dp.type IN ('S', 'U', 'G') THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END AS is_user,
+                    CAST(0 AS BIT) AS is_replication_role,
+                    NULL AS connection_limit,
+                    NULL AS valid_until,
+                    (
+                        SELECT rm.role_name + ','
+                        FROM _roles_members rm
+                        WHERE rm.member_id = dp.principal_id
+                        FOR XML PATH('')
+                    ) AS member_of
+                FROM sys.database_principals dp
+                WHERE dp.name NOT IN ('public', 'INFORMATION_SCHEMA', 'sys')
+                  { "AND dp.type IN ('S', 'U', 'G')" if not include_groups else "" }
+                ORDER BY is_user DESC, rolename;
             """
         else:
             raise NotImplementedError("Engine not supported")
@@ -577,8 +674,8 @@ class Client:
                     and {'usename = current_user' if not include_all else '1 = 1'}
                 order by query_start desc;
             """
-        elif self.engine == "sqlserver":
-            query = """
+        elif self.engine == "mssql":
+            query = f"""
                 SELECT 
                     s.session_id                                             AS session_id,
                     NULL                                                     AS resource_group_id,
@@ -586,8 +683,9 @@ class Client:
                     s.login_name                                             AS username,
                     s.host_name                                              AS client_address,
                     s.program_name                                           AS application_name,
-                    r.command                                                AS query,
-                    r.status                                                 AS state,
+                    -- Fixed: Dynamic extraction of the real textual sql handle query string
+                    COALESCE(st.text, r.command)                             AS query,
+                    s.status                                                 AS state,
                     CAST(CASE WHEN r.wait_time = 0 THEN 0 ELSE 1 END AS BIT) AS waiting,
                     r.wait_type                                              AS waiting_reason,
                     r.wait_time                                              AS waiting_time_ms,
@@ -595,14 +693,15 @@ class Client:
                     s.login_time                                             AS backend_start,
                     NULL                                                     AS xact_start,
                     NULL                                                     AS state_change,
-                    r.cpu_time,
-                    r.total_elapsed_time,
+                    r.cpu_time                                               AS cpu_time,
+                    r.total_elapsed_time                                     AS total_elapsed_time,
                     r.reads                                                  AS reads_,
                     r.writes                                                 AS writes_
                 FROM sys.dm_exec_sessions s
-                        LEFT JOIN sys.dm_exec_requests r ON s.session_id = r.session_id
-                WHERE 1 = 1
-                    AND {'s.login_name = SUSER_NAME()' if not include_all else '1 = 1'}
+                LEFT JOIN sys.dm_exec_requests r ON s.session_id = r.session_id
+                OUTER APPLY sys.dm_exec_sql_text(r.sql_handle) st
+                WHERE s.is_user_process = 1
+                    { "AND s.login_name = SUSER_NAME()" if not include_all else "" }
                 ORDER BY r.start_time DESC;
             """
         else:
@@ -618,7 +717,7 @@ class Client:
         """
         if self.engine in ("postgres", "greenplum"):
             query = "select pg_terminate_backend(pid) from pg_catalog.pg_stat_activity where usename = current_user;"
-        elif self.engine == "sqlserver":
+        elif self.engine == "mssql":
             query = "kill (select session_id from sys.dm_exec_sessions where login_name = SUSER_NAME());"
         else:
             raise NotImplementedError("Engine not supported")
@@ -634,7 +733,7 @@ class Client:
         """
         if self.engine in ("postgres", "greenplum"):
             query = f"select pg_terminate_backend({session_id});"
-        elif self.engine == "sqlserver":
+        elif self.engine == "mssql":
             query = f"kill {session_id};"
         else:
             raise NotImplementedError("Engine not supported")
@@ -667,7 +766,7 @@ def create_client(host, port, database, username, password, engine, keep_connect
     :param database: str - The name of the database to connect to.
     :param username: str - The username for authenticating the database connection.
     :param password: str - The password for authenticating the database connection.
-    :param engine: str - The database engine to use; supported values are 'postgres' and 'sqlserver'.
+    :param engine: str - The database engine to use; supported values are 'postgres' and 'mssql'.
     :param keep_connection: bool - If True, the connection will be maintained until explicitly closed.
                             If False, the connection will be opened and closed for each operation.
     :return: Client - A `Client` instance configured for interacting with the specified database.
@@ -697,7 +796,7 @@ def create_client_from_config(config):
                    - database: str - The name of the database to connect to.
                    - username: str - The username for authenticating the database connection.
                    - password: str - The password for authenticating the database connection.
-                   - engine: str - The database engine to use; supported values are 'postgres' and 'sqlserver'.
+                   - engine: str - The database engine to use; supported values are 'postgres' and 'mssql'.
                    - keep_connection: bool - If True, the connection will be maintained until explicitly closed.
                                               If False, the connection will be opened and closed for each operation.
     :return: Client - A `Client` instance configured for interacting with the specified database.
@@ -725,7 +824,7 @@ def truncate_table(db_client, table_name, if_exists):
     if if_exists == "truncate":
         if db_client.engine in ("postgres", "greenplum"):
             sql = f"TRUNCATE TABLE {table_name};"
-        elif db_client.engine == "sqlserver":
+        elif db_client.engine == "mssql":
             sql = f"TRUNCATE TABLE {table_name};"
         else:
             raise NotImplementedError("Engine not supported for truncate operation")
