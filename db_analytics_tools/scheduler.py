@@ -5,16 +5,34 @@
     A utility class to manage system crontab entries using unique identifiers in comments.
 """
 
-
 #####################################################################################################
-import subprocess
+# Package Imports
+#####################################################################################################
 import os
 import re
+import subprocess
+import tempfile
+import logging
 
 import pandas as pd
 #####################################################################################################
 
 
+#####################################################################################################
+# Set up logging configuration
+#####################################################################################################
+logging.basicConfig(
+    level=logging.WARNING,
+    format="%(asctime)s [%(levelname)s] %(name)s: %(message)s",
+    force=True
+)
+logger = logging.getLogger("CronManager")
+#####################################################################################################
+
+
+#####################################################################################################
+# CronManager Class Definition
+#####################################################################################################
 class CronManager:
     """
     A utility class to manage system crontab entries using unique identifiers in comments.
@@ -23,200 +41,243 @@ class CronManager:
     def __init__(self):
         self.app_id_prefix = "DB_TOOLS_ID:"
         self.app_cmd_prefix = "db_cli"
-        
+        logger.info("CronManager initialized successfully.")
+
+    def _get_id_pattern(self, comment):
+        """
+        Returns a compiled regex pattern to find the specific comment ID,
+        supporting variable spacing and comment hashes.
+        """
+        return re.compile(r"#\s*" + re.escape(self.app_id_prefix) + r"\s*" + re.escape(comment) + r"\s*$")
+
     def _parse_cron_line(self, line):
         """
-        Splits a cron line into three distinct parts: ID, Schedule, and Command.
+        Parses a cron line into clean structured components using precise string splits.
         """
+        clean_line = line.strip()
+        is_disabled = clean_line.startswith("#")
+        content = clean_line.lstrip("#").strip()
         
-        # 1. Extract Schedule (the first 5 fields) and Command
-        job_schedule = line.split(self.app_cmd_prefix)[0]
+        # Locate the structural application token identifier
+        if f"{self.app_id_prefix}" in content:
+            cmd_part, id_part = content.split(f"{self.app_id_prefix}", 1)
+            job_id = id_part.strip()
+        else:
+            return {
+                "id": "UNKNOWN", "schedule": "", "cmd": clean_line, 
+                "log": "", "disabled": is_disabled, "raw": line
+            }
+
+        # Separate schedule (first 5 space-separated blocks) from the command core
+        chunks = cmd_part.strip().rstrip("#").strip().split(None, 5)
+        if len(chunks) < 6:
+            return {
+                "id": f"{self.app_id_prefix}{job_id}", "schedule": cmd_part.strip(), 
+                "cmd": "", "log": "", "disabled": is_disabled, "raw": line
+            }
+            
+        schedule = " ".join(chunks[:5])
+        rest = chunks[5].strip()
         
-        # 2. Extract ID
-        job_id = self.app_id_prefix + line.split(self.app_id_prefix)[-1]
-        
-        # 3. Extract CMD
-        job_cmd = self.app_cmd_prefix + line.split(self.app_cmd_prefix)[-1].split(self.app_cmd_prefix)[0]
+        cmd = rest
+        log = ""
+        if ">>" in rest:
+            cmd_before_log, log_after = rest.split(">>", 1)
+            cmd = cmd_before_log.strip()
+            log = log_after.strip()
 
         return {
-            "id": job_id,
-            "schedule": job_schedule,
-            "cmd": job_cmd,
+            "id": f"{self.app_id_prefix}{job_id}",
+            "schedule": schedule,
+            "cmd": cmd,
+            "log": log,
+            "disabled": is_disabled,
             "raw": line
         }
 
     def _get_all_lines(self):
         """
-        Retrieves all current crontab lines.
+        Retrieves all current crontab lines safely.
         """
         try:
             output = subprocess.check_output("crontab -l", shell=True, stderr=subprocess.STDOUT)
-            return output.decode().splitlines()
-        except subprocess.CalledProcessError:
+            lines = output.decode().splitlines()
+            logger.debug(f"Successfully retrieved {len(lines)} lines from system crontab.")
+            return lines
+        except subprocess.CalledProcessError as e:
+            logger.warning(f"No crontab found or command failed. Returning empty list. Details: {e.output.decode().strip()}")
             return []
 
     def _write_crontab(self, lines):
         """
-        Writes the provided list of lines back to the system crontab.
+        Writes the provided list of lines back to the system crontab using a secure NamedTemporaryFile.
         """
-        temp_file = "temp_cron_dispatch.txt"
+        with tempfile.NamedTemporaryFile(mode="w", delete=False, suffix="_cron.txt") as temp_file:
+            temp_file.write("\n".join(lines) + "\n")
+            temp_path = temp_file.name
+
         try:
-            with open(temp_file, "w") as f:
-                f.write("\n".join(lines) + "\n")
-            subprocess.check_call(f"crontab {temp_file}", shell=True)
+            subprocess.check_call(f"crontab {temp_path}", shell=True)
+            logger.info("System crontab updated successfully.")
+        except subprocess.CalledProcessError as e:
+            logger.error(f"Failed to execute crontab update command. Error: {e}")
+            raise e
         finally:
-            if os.path.exists(temp_file):
-                os.remove(temp_file)
+            if os.path.exists(temp_path):
+                os.remove(temp_path)
 
     def create(self, cmd, schedule, comment="python_job", args=None):
         """
         Adds a new cron job with a specific schedule and unique comment ID.
         """
+        logger.info(f"Attempting to create cron job with ID target: '{comment}'")
         lines = self._get_all_lines()
+        pattern = self._get_id_pattern(comment)
         
-        # Prevent duplicate IDs
-        if any(f"{self.app_id_prefix}{comment}" in line for line in lines):
-            # raise ValueError(f"Cron job with ID '{comment}' already exists.")
-            print(f"Cron job with ID '{comment}' already exists.")
+        if any(pattern.search(line) for line in lines):
+            logger.error(f"Creation failed: Cron job with ID '{comment}' already exists.")
             return False
 
-        full_cmd = cmd
-        if args:
-            full_cmd = f"{cmd} {args}"
-
-        # Format: [schedule] [command] # DB_TOOLS_ID:comment
-        new_entry = f"{schedule} {full_cmd} # {self.app_id_prefix}{comment}"
+        full_cmd = f"{cmd} {args}" if args else cmd
+        new_entry = f"{schedule} {full_cmd} >> {comment}.log # {self.app_id_prefix}{comment}"
         lines.append(new_entry)
         
         self._write_crontab(lines)
-        print(f"Cron job '{comment}' created successfully.")
-        
+        logger.info(f"Cron job '{comment}' added and committed successfully.")
         return True
 
     def read(self, comment=None):
         """
-        Lists all cron jobs or filters by the specific comment ID.
+        Lists all custom tool cron jobs or filters by a specific comment ID.
         """
+        if comment:
+            logger.info(f"Filtering crontab lines for target ID: '{comment}'")
+        else:
+            logger.info("Reading all tool-managed crontab entries.")
+
         lines = self._get_all_lines()
         jobs = []
         
         for line in lines:
-            if not line.strip() or line.startswith("# "):
+            if not line.strip() or self.app_id_prefix not in line:
                 continue
                 
-            # Extract ID from the end of the line
-            match = re.search(f"# {self.app_id_prefix}(.+)$", line)
-            if match:
-                job_id = match.group(1).strip()
-                # If comment is specified, only return matching ID
-                if comment and job_id != comment:
-                    continue
+            parsed = self._parse_cron_line(line)
+            clean_id = parsed["id"].replace(self.app_id_prefix, "")
+            
+            if comment and clean_id != comment:
+                continue
+            jobs.append(parsed)
                 
-                jobs.append(self._parse_cron_line(line))
-                
+        logger.info(f"Found {len(jobs)} jobs matching criteria.")
         if not comment:
             return pd.DataFrame(jobs)
         return jobs
 
     def update(self, comment, new_cmd=None, new_schedule=None):
         """
-        Updates an existing cron job identified by its comment ID.
+        Updates an existing cron job's schedule or command identified by its comment ID.
         """
+        logger.info(f"Initiating update configuration request for job ID: '{comment}'")
         lines = self._get_all_lines()
+        pattern = self._get_id_pattern(comment)
         updated = False
         new_lines = []
 
         for line in lines:
-            if f"{self.app_id_prefix}{comment}" in line:
-                # Parse existing line
-                parts = line.split(f" # {self.app_id_prefix}")
-                config_part = parts[0].strip()
+            if pattern.search(line):
+                parsed = self._parse_cron_line(line)
                 
-                # Split schedule and command (simple split on first 5 spaces)
-                config_split = config_part.split(None, 5)
-                current_schedule = " ".join(config_split[:5])
-                current_cmd = config_split[5]
-
-                final_schedule = new_schedule if new_schedule else current_schedule
-                final_cmd = new_cmd if new_cmd else current_cmd
+                final_schedule = new_schedule if new_schedule else parsed["schedule"]
+                final_cmd = new_cmd if new_cmd else parsed["cmd"]
+                final_log_str = f" >> {parsed['log']}" if parsed["log"] else ""
                 
-                new_lines.append(f"{final_schedule} {final_cmd} # {self.app_id_prefix}{comment}")
+                disabled_prefix = "# " if parsed["disabled"] else ""
+                updated_entry = f"{disabled_prefix}{final_schedule} {final_cmd}{final_log_str} # {self.app_id_prefix}{comment}"
+                
+                new_lines.append(updated_entry)
                 updated = True
+                logger.info(f"Target line matching ID '{comment}' updated inline.")
+                logger.debug(f"Old line: {line} -> New line: {updated_entry}")
             else:
                 new_lines.append(line)
 
         if updated:
             self._write_crontab(new_lines)
+            logger.info(f"Modifications for job '{comment}' successfully written to the system.")
+        else:
+            logger.warning(f"Update skipped: No cron job found with ID '{comment}'.")
+            
         return updated
 
     def disable(self, comment):
         """
-        Disables a cron job entry matching the unique comment ID.
+        Disables an active cron job entry matching the unique comment ID.
         """
+        logger.info(f"Request received to DISABLE cron job ID: '{comment}'")
         lines = self._get_all_lines()
+        pattern = self._get_id_pattern(comment)
         updated = False
         new_lines = []
 
         for line in lines:
-            if (f"{self.app_id_prefix}{comment}" in line) and (not line.strip().startswith("#")):
-                new_line = f"# {line}".strip()
-                new_lines.append(new_line)
-                updated = True
-            else:
-                new_lines.append(line)
+            if pattern.search(line):
+                clean_line = line.strip()
+                if not clean_line.startswith("#"):
+                    new_lines.append(f"# {clean_line}")
+                    updated = True
+                    logger.info(f"Cron job ID '{comment}' has been disabled.")
+                    continue
+            new_lines.append(line)
 
         if updated:
             self._write_crontab(new_lines)
+        else:
+            logger.warning(f"Disable targeted line skipped: Job '{comment}' was already disabled or not found.")
+            
         return updated
 
     def enable(self, comment):
         """
-        Enables a cron job entry matching the unique comment ID.
+        Enables a commented/disabled cron job entry matching the unique comment ID.
         """
+        logger.info(f"Request received to ENABLE cron job ID: '{comment}'")
         lines = self._get_all_lines()
+        pattern = self._get_id_pattern(comment)
         updated = False
         new_lines = []
 
         for line in lines:
-            if (f"{self.app_id_prefix}{comment}" in line) and (line.strip().startswith("#")):
-                new_line = f"# {line}".strip()
-                new_lines.append(new_line)
-                updated = True
-            else:
-                new_lines.append(line)
+            if pattern.search(line):
+                clean_line = line.strip()
+                if clean_line.startswith("#"):
+                    new_lines.append(clean_line.lstrip("#").strip())
+                    updated = True
+                    logger.info(f"Cron job ID '{comment}' has been re-enabled successfully.")
+                    continue
+            new_lines.append(line)
 
         if updated:
             self._write_crontab(new_lines)
+        else:
+            logger.warning(f"Enable targeted line skipped: Job '{comment}' was already active or not found.")
+            
         return updated
 
     def delete(self, comment):
         """
-        Removes a cron job entry matching the unique comment ID.
+        Removes a cron job entry matching the unique comment ID entirely.
         """
+        logger.info(f"Request received to DELETE cron job ID: '{comment}' permanently.")
         lines = self._get_all_lines()
-        new_lines = [line for line in lines if f"{self.app_id_prefix}{comment}" not in line]
+        pattern = self._get_id_pattern(comment)
+        
+        new_lines = [line for line in lines if not pattern.search(line)]
         
         if len(new_lines) != len(lines):
             self._write_crontab(new_lines)
+            logger.info(f"Cron job ID '{comment}' removed from crontab table.")
             return True
+            
+        logger.warning(f"Deletion skipped: No target line found with ID '{comment}'.")
         return False
-
-# --- Example Usage ---
-if __name__ == "__main__":
-    manager = CronManager()
-    
-    command = "db_cli --engine greenplum --host XX.XXX.XX.XXX --port 5432 --database cdrfw --user joekakone --password Axian2580 --start 2026-01-01 --stop 2026-05-01 --functions bibox.fn_gros_ad_lu_agents bibox.fn_gros_ad_lu_agents_month_alignement --frequency m"
-    
-    # 1. Create
-    manager.create(command, "0 0 1 * *", comment="db_sync_weekly")
-    
-    # 2. Read all
-    df = manager.read()
-    print(df.columns, df.shape, df.index)
-    print("All Jobs:\n", df.reset_index(drop=True).T)
-    
-    # 3. Update schedule to every Monday
-    manager.update("db_sync_monthly", new_schedule="0 0 * * 1")
-    
-    # 4. Delete
-    # manager.delete("db_sync_monthly")
