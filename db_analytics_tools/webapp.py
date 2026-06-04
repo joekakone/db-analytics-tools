@@ -329,7 +329,7 @@ class DBAnalyticsUI:
         
         with tabs[1]:
             with st.form("schedule_job_form", clear_on_submit=True, border=False):
-                job_command = st.text_input("Command to Schedule", placeholder="e.g. db_cli --engine greenplum --host XX.XXX.XX.XXX --port 5432 --database cdrfw --user joekakone --password Axian2580 --start 2026-01-01 --stop 2026-05-01 --functions bibox.fn_gros_ad_lu_agents bibox.fn_gros_ad_lu_agents_month_alignement --frequency m")
+                job_command = st.text_input("Command to Schedule", placeholder="e.g. db_cli --engine postgres --host localhost --port 5432 --database cdrfw --user joekakone --password Password123 --start 3 --stop 1 --functions bibox.fn_gros_ad_lu_agents bibox.fn_gros_ad_lu_agents_month_alignement --frequency m")
                 job_schedule = st.text_input("Cron Schedule", placeholder="e.g. 0 0 * * *")
                 job_comment = st.text_input("Unique Job Comment (ID)", placeholder="e.g. db_sync_weekly")
                 submit_job = st.form_submit_button("Schedule Job", type="primary", width='stretch')

@@ -1,5 +1,5 @@
 <div align="center">
-  <img src="static/img/cover.png"><br>
+  <img src="https://joekakone.github.io/db-analytics-tools/static/img/cover.png"><br>
 </div>
 
 # DB Analytics Tools
@@ -282,7 +282,7 @@ DB Analytics Tools UI is a web-based GUI  (`db_analytics_tools.webapp.DBAnalytic
 ```sh
 db_tools start --config config.json --address 127.0.0.1 --port 8050
 ```
-![](static/img/db-analytics-tools-ui-screenshot.png)
+![](https://joekakone.github.io/db-analytics-tools/static/img/db-analytics-tools-ui-screenshot.png)
 
 
 ## Get started with the CLI

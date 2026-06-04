@@ -7,7 +7,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="db_analytics_tools",
-    version="0.1.9.10",
+    version="0.2",
     url="https://joekakone.github.io/db-analytics-tools",
     download_url="https://github.com/joekakone/db-analytics-tools",
     project_urls={
@@ -17,7 +17,7 @@ setup(
     },
     license="MIT",
     author="Joseph Konka",
-    author_email="joseph.kakone@gmail.com",
+    author_email="konka.datanalytics@gmail.com",
     description="Databases Tools for Data Analytics",
     keywords="databases analytics etl sql orc",
     long_description=long_description,

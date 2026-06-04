@@ -41,6 +41,8 @@ class CronManager:
     def __init__(self):
         self.app_id_prefix = "DB_TOOLS_ID:"
         self.app_cmd_prefix = "db_cli"
+        self.app_log_dir = os.path.expanduser("~/db_tools_logs")
+        os.makedirs(self.app_log_dir, exist_ok=True)
         logger.info("CronManager initialized successfully.")
 
     def _get_id_pattern(self, comment):
@@ -139,7 +141,8 @@ class CronManager:
             return False
 
         full_cmd = f"{cmd} {args}" if args else cmd
-        new_entry = f"{schedule} {full_cmd} >> {comment}.log # {self.app_id_prefix}{comment}"
+        full_path = os.path.join(self.app_log_dir, f"{comment}.log")
+        new_entry = f"{schedule} {full_cmd} >> {full_path} # {self.app_id_prefix}{comment}"
         lines.append(new_entry)
         
         self._write_crontab(lines)
