@@ -543,21 +543,20 @@ print(decomposition_result.seasonal.head())</div>
                 <div>
                     <h4 class="text-white font-bold text-sm uppercase tracking-widest mb-6">The Project</h4>
                     <ul class="space-y-4 text-sm text-slate-400">
-                        <li><a href="index.html#about" class="footer-link">About</a></li>
                         <li><a href="docs.html" class="footer-link">Documentation</a></li>
-                        <li><a href="http://joekakone.github.io/#contact" target="_blank" class="footer-link">Contact</a></li>
+                        <li><a href="https://github.com/joekakone/db-analytics-tools" target="_blank" class="footer-link">GitHub</a></li>
+                        <li><a href="https://pypi.org/project/db-analytics-tools/" target="_blank" class="footer-link">Pypi</a></li>
+                        <li><a href="https://hub.docker.com/repository/docker/joekakone/db-analytics-tools-ui/" target="_blank" class="footer-link">Docker Hub</a></li>
                     </ul>
                 </div>
 
                 <div>
-                    <h4 class="text-white font-bold text-sm uppercase tracking-widest mb-6">Newsletter</h4>
-                    <p class="text-sm text-slate-500 mb-6">Join our newsletter to get latest updates on data engineering.</p>
-                    <div class="relative group">
-                        <input type="email" placeholder="Professional Email" class="w-full bg-slate-900 border border-slate-800 rounded-full py-3 px-6 text-sm text-white focus:outline-none focus:border-blue-500 transition">
-                        <a id="tally-link" href="#tally-open=mJzBvX&tally-layout=modal&tally-emoji-text=👋&tally-emoji-animation=wave" class="absolute right-1 top-1 bottom-1 w-10 h-10 bg-white rounded-full flex items-center justify-center text-slate-900 group-hover:scale-95 transition">
-                            <i class="fas fa-arrow-right"></i>
-                        </a>
-                    </div>
+                    <h4 class="text-white font-bold text-sm uppercase tracking-widest mb-6">Resources</h4>
+                    <ul class="space-y-4 text-sm text-slate-400">
+                        <li><a href="index.html#about" class="footer-link">About</a></li>
+                        <li><a href="#tally-open=mJzBvX&tally-layout=modal&tally-emoji-text=👋&tally-emoji-animation=wave" class="footer-link">Newsletter</a></li>
+                        <li><a href="http://joekakone.github.io/#contact" target="_blank" class="footer-link">Contact</a></li>
+                    </ul>
                 </div>
             </div>
 
@@ -590,48 +589,7 @@ print(decomposition_result.seasonal.head())</div>
     <!-- Tally -->
     <script async src="https://tally.so/widgets/embed.js"></script>
 
-    <script>
-        const emailInput = document.getElementById('newsletter-email');
-        const tallyLink = document.getElementById('tally-link');
-        
-        // L'URL de base sans le paramètre email
-        const baseHref = "#tally-open=mJzBvX&tally-layout=modal&tally-emoji-text=👋&tally-emoji-animation=wave";
-
-        emailInput.addEventListener('input', (e) => {
-            const emailValue = encodeURIComponent(e.target.value);
-            
-            if (emailValue) {
-                // On ajoute &email= à la fin du lien. 
-                // Note: Vérifiez dans Tally si le nom interne de votre champ est bien "email"
-                tallyLink.href = `${baseHref}&email=${emailValue}`;
-            } else {
-                tallyLink.href = baseHref;
-            }
-        });
-    </script>
-
-    <script>
-        // Copy functionality
-        document.querySelectorAll('.copy-btn').forEach(btn => {
-            btn.addEventListener('click', () => {
-                const code = btn.parentElement.nextElementSibling.innerText;
-                const el = document.createElement('textarea');
-                el.value = code;
-                document.body.appendChild(el);
-                el.select();
-                document.execCommand('copy');
-                document.body.removeChild(el);
-                
-                const originalText = btn.innerText;
-                btn.innerText = 'Copied!';
-                btn.classList.add('text-green-500');
-                
-                setTimeout(() => {
-                    btn.innerText = originalText;
-                    btn.classList.remove('text-green-500');
-                }, 2000);
-            });
-        });
-    </script>
+    <!-- Custom JS -->
+    <script src="static/js/custom.js"></script>
 </body>
 </html>
