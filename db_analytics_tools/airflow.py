@@ -6,14 +6,18 @@
     This module provides a class for interacting with the Apache Airflow REST API.
 """
 
-import urllib
-import datetime
-import json
 import os
+import json
+import datetime
+import urllib
 
+import pandas as pd
 import requests
 from requests.auth import HTTPBasicAuth
-import pandas as pd
+from airflow.hooks.dbapi import DbApiHook
+from airflow.exceptions import AirflowNotFoundException
+
+import db_analytics_tools as db
 
 
 class AirflowRESTAPIV1:
@@ -403,6 +407,41 @@ class AirflowRESTAPI:
         return response
 
 
+def create_client_from_airflow(airflow_conn_id):
+    """
+    Creates a database client using connection details from Airflow.
+    param airflow_conn_id: Airflow connection ID.
+    return: Database client instance.
+    """
+    # Retrieve connection from Airflow
+    try:
+        conn_hook = DbApiHook.get_connection(conn_id=airflow_conn_id)
+    except AirflowNotFoundException as e:
+        raise AirflowNotFoundException(f"Connection ID '{airflow_conn_id}' not found in Airflow: {e}")
+    except Exception as e:
+        raise Exception(f"Error retrieving connection '{airflow_conn_id}': {e}")
+    
+    # Extract connection parameters
+    host = conn_hook.host
+    port = conn_hook.port
+    schema = conn_hook.schema
+    login = conn_hook.login
+    password = conn_hook.password
+    conn_type = conn_hook.conn_type
+    
+    # Create a database client
+    client = db.Client(
+        host=host,
+        port=port,
+        database=schema,
+        username=login,
+        password=password,
+        engine=conn_type
+    )
+    
+    return client
+
+    
 def fetch_data(query, connection_id, output_file, html_file):
     """
     Fetches data from a database and saves it to a CSV file and an HTML file.
