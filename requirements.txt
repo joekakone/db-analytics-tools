@@ -7,3 +7,4 @@ matplotlib>=3.4.3
 requests>=2.32.3
 openpyxl>=3.1.5
 python-crontab>=3.1.0
+apache-airflow>=3.1.0

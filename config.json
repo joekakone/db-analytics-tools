@@ -1,0 +1,88 @@
+{
+	"app_name": "DB Analytics Tools UI (Full Version)",
+	"app_logo": "https://avatars.githubusercontent.com/u/102814276?s=200&v=4",
+
+    "auth_config": {
+		"enabled": false,
+        "secret_question": "Who ate the fufu ?",
+        "secret_answer": "reacher",
+		"allowed_users": ["admin", "joekakone"]
+    },
+
+    "database_instances": [
+        {
+            "name": "Data Warehouse Postgres",
+            "engine": "postgres",
+            "host": "localhost",
+            "port": "5432",
+            "database": "postgres",
+			"pipelines": [
+				{
+					"pipeline_name" : "Test Pipeline",
+					"pipeline_type": "multiple",
+					"pipeline_functions": [
+						"public.fn_test",
+						"public.fn_test_long",
+						"public.fn_test_very_long"
+					]
+				},
+				{
+					"pipeline_name" : "RH Employees",
+					"pipeline_type": "multiple",
+					"pipeline_functions": [
+						"stg.fn_rh_employes",
+						"dim.dim_employees"
+					]
+				},
+				{
+					"pipeline_name" : "E-Commerce Sales",
+					"pipeline_type": "multiple",
+					"pipeline_functions": [
+						"stg.fn_ecommerce_sales",
+						"dim.dim_products",
+						"dim.dim_customers",
+						"fact.fact_sales"
+					]
+				},
+				{
+					"pipeline_name" : "Financial Services",
+					"pipeline_type": "multiple",
+					"pipeline_functions": [
+						"stg.fn_financial_services",
+						"dim.dim_accounts",
+						"dim.dim_services",
+						"fact.fact_transactions"
+					]
+				}
+			]
+        }
+    ],
+
+    "airflow_instances": [
+        {
+			"name": "Airflow Local",
+			"url": "http://localhost:8080",
+			"api_endpoint": "api/v2/"
+		}
+    ],
+
+    "powerbi_instances": [
+        {
+			"name": "Power BI Report Server",
+			"url": "http://localhost/PowerBIReports"
+		},
+        {
+			"name": "Power BI Service",
+			"url": "https://app.powerbi.com/groups/me/list?experience=power-bi"
+		}
+    ],
+
+    "email_support": {
+        "email_host": "smtp.xxxxx.com",
+        "email_port": 587,
+        "email_user": "xxxxx.xxxx@xxxxx.com",
+        "email_password": "xxxxxxxxxx",
+        "email_use_tls": "yes",
+        "email_destinator": "xxxxx.xxxx@xxxxx.com"
+    }
+}

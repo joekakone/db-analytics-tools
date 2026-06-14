@@ -12,6 +12,7 @@
 # Package Imports
 #####################################################################################################################################
 import os
+import io
 import json
 import time
 import datetime
@@ -19,6 +20,7 @@ import argparse
 import subprocess
 import tempfile
 import threading
+from textwrap import dedent
 
 import streamlit as st
 import pandas as pd
@@ -29,6 +31,7 @@ import db_analytics_tools as db
 import db_analytics_tools.integration as dbi
 from db_analytics_tools.airflow import AirflowRESTAPI
 from db_analytics_tools.scheduler import CronManager
+from db_analytics_tools.mail import MailSender
 #####################################################################################################################################
 
 
@@ -57,8 +60,10 @@ class DBAnalyticsUI:
         self.config = config
         self.app_name = config.get("app_name", "DB Analytics Tools UI")
         self.app_logo = config.get("app_logo", "")
-        self.allowed_users = config.get("allowed_users", [])
-        
+        self.allowed_users = config.get("auth_config", {}).get("allowed_users", [])
+        self.auth_enabled = config.get("auth_config", {}).get("auth_enabled", False)
+        self.mail_enabled = config.get("email_support", {}).get("email_host", None)
+
         #############################################################################################################################
         # Initialize session state variables if they don't exist
         #############################################################################################################################
@@ -75,6 +80,51 @@ class DBAnalyticsUI:
         for key, value in initial_state.items():
             if key not in st.session_state:
                 st.session_state[key] = value
+                
+        self.setup_mail_sender()
+    #################################################################################################################################
+    
+
+    #################################################################################################################################
+    # Mail Sender Setup
+    #################################################################################################################################
+    def setup_mail_sender(self):
+        """
+        Initializes the MailSender instance based on the configuration.
+        """
+        if self.mail_enabled:
+            email_config = self.config.get("email_support", {})
+            self.mail_sender = MailSender(
+                email_host=email_config.get("email_host"),
+                email_port=email_config.get("email_port"),
+                email_user=email_config.get("email_user"),
+                email_password=email_config.get("email_password"),
+                email_use_tls=email_config.get("email_use_tls", True),
+                email_use_ssl=email_config.get("email_use_ssl", False),
+                email_from=email_config.get("email_from", None)
+            )
+            self.email_destinator = email_config.get("email_destinator", [])
+        else:
+            self.mail_sender = None
+            
+    def send_mail_notification(self, subject, message, to_addresses):
+        """
+        Sends an email notification using the configured MailSender.
+
+        :param subject: The subject of the email.
+        :param message: The body content of the email.
+        :param to_addresses: A list of recipient email addresses.
+        """
+        if not self.mail_enabled or not self.mail_sender or not self.email_destinator:
+            print("Email support is not configured. Cannot send email notification.")
+            return
+        
+        try:
+            with self.mail_sender as sender:
+                sender.send_mail(receiver_address=to_addresses, subject=subject, body_html=message)
+            print(f"Email notification sent to {to_addresses}")
+        except Exception as e:
+            print(f"Failed to send email notification: {e}")
     #################################################################################################################################
 
 
@@ -90,8 +140,13 @@ class DBAnalyticsUI:
         #############################################################################################################################
         # 1. Authentication
         #############################################################################################################################
-        if not self.check_auth() or not st.session_state.auth_status:
-            return
+        if (not self.auth_enabled) or (not self.check_auth()) or (not st.session_state.auth_status):
+            if (not self.auth_enabled):
+                st.session_state.user = "Guest"
+                st.session_state.auth_status = True
+                st.warning("Authentication is disabled. Visitor access granted with limited functionality.", width='stretch')
+            else:
+                return
 
         #############################################################################################################################
         # 2. Sidebar Management
@@ -309,7 +364,7 @@ class DBAnalyticsUI:
                         if is_disabled:
                             if st.button("✅ Enable Job", width='stretch'):
                                 cron_manager.enable(comment=selected_job_id)
-                                st.success(f"Job {selected_job} enabled.")
+                                st.success(f"Job {selected_job} auth_enabled.")
                         else:
                             if st.button("🗑️ Disable Job", type="primary", width='stretch'):
                                 cron_manager.disable(comment=selected_job_id)
@@ -617,30 +672,67 @@ class DBAnalyticsUI:
 
         duration = datetime.datetime.now() - duration
         result = f"✅ Pipeline: {selected_pipeline} | Total duration: {duration}"
+        
+        if mail_notification and self.mail_enabled:
+            try:
+                clean_result = str(result).replace('|', '<br>') if result else "No summary details provided."
+                subject = f"DB Analytics Tools - Pipeline Execution Completed: {selected_pipeline}"
+                message = dedent(f"""\
+                    <html>
+                    <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333333;">
+                        <p>Hi,</p>
+                        <div style="margin: 15px 0;">
+                            {clean_result}
+                        </div>
+                        <p>Regards,<br>
+                        <strong>DB Analytics Tools</strong></p>
+                    </body>
+                    </html>
+                """)
+                self.send_mail_notification(
+                    subject=subject,
+                    message=message,
+                    to_addresses=self.email_destinator,
+                )
+            except Exception as e:
+                print(f"Failed to send email notification: {e}")
         return result
     
-    def extract_sub_module(self, df, table=None):
+    def render_export_button(self, df: pd.DataFrame, table: str = None):
         """
-        Extracts the sub-module name from a full module path in the 'module' column of the provided DataFrame.
-        The sub-module is defined as the last segment of the module path after splitting by dots.
+        Prepares and displays a Streamlit download button to export the DataFrame as a CSV file.
+        Optimized to handle memory efficiently and use proper Streamlit layout properties.
 
-        :param df: A pandas DataFrame containing a 'module' column with full module paths.
-        :param table: The name of the table for which to generate the filename. If None, a default name will be used.
+        :param df: A pandas DataFrame containing the data to be exported.
+        :param table: Optional table name used to generate a descriptive export filename.
         """
-        # Prepare CSV data and filename for download
-        csv_data = df.to_csv(index=False, sep=';', encoding='utf-8')
-        file_prefix = table.replace('.', '__') if table else "table"
-        file_suffix = datetime.datetime.now().strftime('%Y%m%d%H%M%S')
-        filename_csv = f"{file_prefix}_{file_suffix}_export.csv"
+        if df is None or df.empty:
+            st.warning("No data available to export.")
+            return
+
+        # Prepare a clean file prefix and suffix for the export file
+        file_prefix = table.replace('.', '__') if table else "query_export"
+        file_suffix = datetime.datetime.now().strftime('%Y%m%d_%H%M%S')
+        filename_csv = f"{file_prefix}_{file_suffix}.csv"
         
-        # Download button
+        # Optimize CSV generation in memory to prevent app slowdowns on large DataFrames
+        try:
+            # We use an in-memory string buffer to avoid duplicating heavy string allocations
+            buffer = io.StringIO()
+            df.to_csv(buffer, index=False, sep=';', encoding='utf-8')
+            csv_data = buffer.getvalue()
+        except Exception as e:
+            st.error(f"Failed to generate CSV export: {e}")
+            return
+        
+        # Streamlit download button
         st.download_button(
             label='Export Table 💾',
             data=csv_data,
             file_name=filename_csv,
             mime="text/csv",
-            help="Click to download the previewed data as a CSV file",
-            width='stretch'
+            help="Click to download the displayed data as a semi-colon separated CSV file",
+            width='content'
         )
     #################################################################################################################################
 
@@ -791,11 +883,11 @@ class DBAnalyticsUI:
             
         with col_notify:
             # Clean layout for notification toggles without redundant checkbox logic
-            mail_notification = st.checkbox("Activate Email Notification", value=True)
+            mail_notification = st.checkbox("Activate Email Notification", value=False, disabled=self.mail_enabled is None or self.email_destinator == [])
             # Run in background option only for custom mode
             run_background = st.checkbox(
                 "Run in Background", 
-                value=False, 
+                value=False,
                 # disabled=(type_etl == "Custom")
             )
             
@@ -853,7 +945,7 @@ class DBAnalyticsUI:
         # 3. PROCESSING & EXECUTION HANDLING
         # =====================================================================
         if submit_execution:
-            if not selected_pipeline or not selected_pipeline.strip():
+            if (not selected_pipeline) or (not selected_pipeline.strip()):
                 st.error("Validation Error: Please specify the name of the target function or procedure.")
                 return
 
@@ -1139,81 +1231,103 @@ class DBAnalyticsUI:
         #############################################################################################################################
         with col2:
             st.subheader("Export data from table")
-            tables = client.get_tables(include_all=True, include_size=False)
+            
+            try:
+                tables = client.get_tables(include_all=True, include_size=False)
+                available_tables = tables['full_tablename'].unique()
+            except Exception as e:
+                st.error(f"Failed to load database tables: {e}")
+                return
             
             selected_table = st.selectbox(
                 "Select the table to export", 
-                tables['full_tablename'].unique(),
+                available_tables,
                 key="export_target_table_selectbox"
             )
             
-            # Save keys
+            # Session State Cache identifiers
             cached_df_key = "export_cached_preview_df"
             cached_table_key = "export_cached_preview_table_name"
             
+            # Flush old cache if user switches target tables to prevent exporting incorrect data
             if cached_table_key in st.session_state:
                 if st.session_state[cached_table_key] != selected_table:
-                    # Clean cache if user selects another table to avoid confusion
                     st.session_state.pop(cached_df_key, None)
                     st.session_state.pop(cached_table_key, None)
             
-            # Preview button
-            if st.button("Preview table", width='stretch'):
+            # Execute table extraction
+            if st.button("Preview table", width='content'):
                 try:
-                    # Sample the table, then store the data and the name of the active table
-                    df_preview = client.sample_table(selected_table, 10)
+                    sql_query = f"SELECT * FROM {selected_table}"
+                    df_preview = client.read_sql(sql_query)
+                    
+                    # Store the complete pulled dataframe and current active table name inside session state
                     st.session_state[cached_df_key] = df_preview
                     st.session_state[cached_table_key] = selected_table
                 except Exception as e:
                     st.error(f"Failed to fetch preview: {e}")
-            
-            # If the cache contains a preview for the active table, display it and the download button
+
+            # Safe rendering from cache (Crucial: prevents crash during download triggers!)
             if cached_df_key in st.session_state:
                 df_preview_cached = st.session_state[cached_df_key]
                 
-                st.dataframe(df_preview_cached, width='stretch', hide_index=True)
-                
-                self.extract_sub_module(df_preview_cached, selected_table)
+                st.markdown("### Table Preview (First 10 rows)")
+                st.dataframe(df_preview_cached.head(10), width='content', hide_index=True)
+                                
+                # BUG FIX: Pass the persistent cached DataFrame, not local variables which reset on rerun!
+                self.render_export_button(df_preview_cached, selected_table)
         #############################################################################################################################
 
     def db_page_query_console(self):
         """
-        Exploration of tables, sizing, and basic database management.
+        Exploration of tables, query execution, and secure in-memory caching.
         """
         st.header("Query Console 🎮")
-        client = st.session_state.current_client
+        client = st.session_state.get("current_client")
         
+        if not client:
+            st.error("No active database client found. Please connect to a database first.")
+            return
+
         st.markdown("---")
         query = st.text_area(
             label="Drop your query (without ; at the end)",
-            value="""select *
-from public.example_table
-limit 100""",
+            value="""SELECT *
+FROM public.example_table
+LIMIT 100""",
+            height=150
         )
         
-        # Initialize session state keys if they don't exist
-        if "query_result_df" not in st.session_state:
-            st.session_state.query_result_df = None
+        # Initialize session state cache keys safely
+        if "query_result_df_cached" not in st.session_state:
+            st.session_state.query_result_df_cached = None
         if "last_executed_query" not in st.session_state:
             st.session_state.last_executed_query = None
 
-        # Trigger execution and store the dataframe in session state
-        if st.button("Run query", type="primary", width='stretch'):
+        # Execute query block
+        if st.button("Run query", type="primary", width='content'):
             try:
-                # Wrap the query to safely enforce a standard preview limit
-                preview_query = f"({query}) AS foo"
-                st.session_state.query_result_df = client.sample_table(preview_query, 100)
+                # Execute query and pull results
+                raw_df = client.read_sql(query)
+                
+                # Cache the full DataFrame for download, but only preview a subset if needed
+                st.session_state.query_result_df_cached = raw_df
                 st.session_state.last_executed_query = query
+                
             except Exception as e:
-                st.session_state.query_result_df = None
+                st.session_state.query_result_df_cached = None
                 st.session_state.last_executed_query = None
-                st.error(f"Query execution failed: {e}", width='stretch')
+                st.error(f"Query execution failed: {e}")
 
-        # Persist the rendering outside of the click event block
-        if st.session_state.query_result_df is not None:
-            st.dataframe(st.session_state.query_result_df, width='stretch', hide_index=True)
-            # Display extraction and download layout seamlessly
-            self.extract_sub_module(st.session_state.query_result_df)
+        # Persistent rendering block (Runs on every rerun, surviving the button click event state)
+        cached_df = st.session_state.query_result_df_cached
+        if cached_df is not None:
+            # Show a lightweight preview to maintain blazing-fast browser performance
+            st.subheader("Data Preview (Showing first 100 rows)")
+            st.dataframe(cached_df.head(100), width='content', hide_index=True)
+            
+            # Pass the cached dataframe so that the export button works flawlessly on subsequent page clicks
+            self.render_export_button(cached_df, table="custom_query")
     #################################################################################################################################
 
 
@@ -1368,7 +1482,7 @@ import json
 from db_analytics_tools.webapp import DBAnalyticsUI
 
 # Load the configuration
-config_data = {json.dumps(config_data)}
+config_data = {repr(config_data)}
 
 # Start App
 app = DBAnalyticsUI(config_data)

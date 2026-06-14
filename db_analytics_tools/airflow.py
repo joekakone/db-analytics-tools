@@ -6,7 +6,16 @@
     This module provides a class for interacting with the Apache Airflow REST API.
 """
 
+#####################################################################################################################################
+# Hide
 import os
+import sys
+current_dir = os.path.dirname(os.path.abspath(__file__))
+if current_dir in sys.path:
+    sys.path.remove(current_dir)
+#####################################################################################################################################
+
+
 import json
 import datetime
 import urllib
@@ -14,7 +23,7 @@ import urllib
 import pandas as pd
 import requests
 from requests.auth import HTTPBasicAuth
-from airflow.hooks.dbapi import DbApiHook
+from airflow.providers.common.sql.hooks.sql import DbApiHook
 from airflow.exceptions import AirflowNotFoundException
 
 import db_analytics_tools as db

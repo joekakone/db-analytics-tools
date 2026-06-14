@@ -6,10 +6,7 @@
 
 services:
   db-analytics-tools-ui:
-    image: joekakone/db-analytics-tools-ui:0.2
-    build:
-      context: .
-      dockerfile: Dockerfile.ui
+    image: joekakone/db-analytics-tools-ui:latest
     restart: always
     ports:
       - "8050:8050"
@@ -18,7 +15,6 @@ services:
       - db_cron_data:/var/spool/cron/crontabs
     networks:
       - db-analytics-tools-network
-      # - deploy-data-warehouse_analytics-network
 
 volumes:
   db_cron_data:
@@ -27,5 +23,3 @@ volumes:
 networks:
   db-analytics-tools-network:
     driver: bridge
-  # deploy-data-warehouse_analytics-network:
-  #   external: true
