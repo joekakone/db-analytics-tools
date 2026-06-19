@@ -4,6 +4,7 @@ pandas>=2.2.1
 SQLAlchemy>=2.0.29
 streamlit>=1.32.2
 matplotlib>=3.4.3
+statsmodels>=0.13.5
 requests>=2.32.3
 openpyxl>=3.1.5
 python-crontab>=3.1.0

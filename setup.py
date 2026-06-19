@@ -7,7 +7,7 @@ with open("README.md", "r") as f:
 
 setup(
     name="db_analytics_tools",
-    version="0.2.1",
+    version="0.2.2",
     url="https://joekakone.github.io/db-analytics-tools",
     download_url="https://github.com/joekakone/db-analytics-tools",
     project_urls={
@@ -30,6 +30,8 @@ setup(
         "streamlit>=1.32.2",
         "matplotlib>=3.4.3",
         "statsmodels>=0.13.5",
+        "requests>=2.32.3",
+        "openpyxl>=3.1.5",
         "python-crontab>=3.1.0",
         "apache-airflow>=3.1.0",
     ],
