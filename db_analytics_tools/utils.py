@@ -172,7 +172,7 @@ class Client:
 
         if not self.keep_connection:
             self.connect()
-        self.cursor.execute(query)
+        self.cursor.execute(query.strip()) # Remove whitespace to prevent execution errors
         self.conn.commit()
         if not self.keep_connection:
             self.close()
