@@ -918,11 +918,13 @@ def dataframe_to_db(dataframe, db_client, destination_table, if_exists="append",
     :param if_exists: Action to take if the table already exists ('fail', 'replace', or 'append').
     :param chunksize: Number of rows to insert in each batch (default is 10000).
     """
-    schema_name, table_name = destination_table.split(".")
+    if "." in destination_table:
+        schema_name, table_name = destination_table.rsplit(".", 1)
+    else:
+        schema_name, table_name = None, destination_table
     
     start_time = datetime.datetime.now()
     
-    # if_exists == "truncate"
     if_exists = truncate_table(db_client, destination_table, if_exists)
 
     dataframe.to_sql(name=table_name,
