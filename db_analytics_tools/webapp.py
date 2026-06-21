@@ -75,6 +75,7 @@ class DBAnalyticsUI:
             "active_module": None,
             "current_airflow": None,
             "run_custom": False,
+            "db_metadatas": {},
         }
         
         for key, value in initial_state.items():
@@ -404,6 +405,33 @@ class DBAnalyticsUI:
     #################################################################################################################################
     # Databases
     #################################################################################################################################
+    def _get_db_metadatas(self):
+        """
+        Fetches metadata from the connected database client.
+
+        :return: A dictionary containing metadata such as tables, views, functions, roles, and sessions.
+        """
+        if not st.session_state.current_client:
+            st.warning("⚠️ No connected DB client. Please select a server in the sidebar.")
+            return None
+        
+        client = st.session_state.current_client
+        
+        tables = client.get_tables(include_all=True, include_size=False)
+        views = client.get_views(include_all=True)
+        functions = client.get_functions(include_all=True)
+        roles = client.get_roles(include_groups=False)
+        sessions = client.show_sessions(include_all=True)
+        
+        return {
+            "tables": tables,
+            "views": views,
+            "functions": functions,
+            "roles": roles,
+            "sessions": sessions
+        }
+    #################################################################################################################################
+    
     def _render_db_module(self):
         """
         Render the Database module
@@ -411,6 +439,9 @@ class DBAnalyticsUI:
         if not st.session_state.current_client:
             st.warning("⚠️ No connected DB client. Please select a server in the sidebar.")
             return
+        
+        # Get and store DB metadata in session state
+        st.session_state.db_metadatas = self._get_db_metadatas()
         
         tabs = st.tabs([
             "🏠 DB Summary", 
@@ -745,31 +776,35 @@ class DBAnalyticsUI:
         Database data summary dashboard interface.
         """
         st.header("DB Summary 🏠")
+        st.markdown("---")
         client = st.session_state.current_client
         
-        # Fetching raw inventory metadata from the active database engine
-        tables = client.get_tables(include_all=True, include_size=False)
+        # Tables
+        tables = st.session_state.db_metadatas["tables"]
         nb_schemas = tables['schemaname'].nunique()
         nb_tables = tables['full_tablename'].nunique()
         nb_partitions = tables['partition_count'].sum()
         nb_users = tables['tableowner'].nunique()
         
-        sessions = client.show_sessions(include_all=True)
+        # Sessions
+        sessions = st.session_state.db_metadatas["sessions"]
         nb_sessions = sessions['session_id'].nunique()
         
-        views = client.get_views(include_all=True)
+        # Views
+        views = st.session_state.db_metadatas["views"]
         nb_views = views['viewname'].nunique()
         
-        functions = client.get_functions(include_all=True)
+        # Functions
+        functions = st.session_state.db_metadatas["functions"]
         nb_functions = functions['functionname'].nunique()
         
-        roles = client.get_roles(include_groups=False)
+        # Roles
+        roles = st.session_state.db_metadatas["roles"]
         nb_roles = roles['rolename'].nunique()
         
         # =====================================================================
         # 1. METRICS METADATA BANNER CARDS
         # =====================================================================
-        st.markdown("---")
         col1, col2, col3, col4 = st.columns(4)
     
         with col1:
@@ -858,6 +893,7 @@ class DBAnalyticsUI:
         """
         st.header("Execution Process ⚡")
         st.markdown("---")
+        client = st.session_state.current_client
 
         # =====================================================================
         # 1. PIPELINE & ENGINE SELECTION
@@ -868,7 +904,7 @@ class DBAnalyticsUI:
             options = ["Custom", "Predefined Pipelines", "Database Procedures", "Database Functions"]
             type_etl = st.selectbox(
                 "ETL Type", 
-                options=options if st.session_state.current_client.engine != 'mssql' else options[:-1]
+                options=options if client.engine != 'mssql' else options[:-1]
             )
             st.session_state.run_custom = (type_etl != "Predefined Pipelines")
             
@@ -878,7 +914,7 @@ class DBAnalyticsUI:
                 "Object Type",
                 options=["Function", "Procedure"],
                 horizontal=True,
-                disabled=(type_etl != "Custom" or st.session_state.current_client.engine == 'mssql')
+                disabled=(type_etl != "Custom" or client.engine == 'mssql')
             ).lower()
             
         with col_notify:
@@ -901,13 +937,13 @@ class DBAnalyticsUI:
                 )
             elif type_etl == "Database Functions":
                 mode = "function"  # Force mode to function for this selection
-                functions_df = st.session_state.current_client.get_functions(include_all=True)
+                functions_df = st.session_state.db_metadatas["functions"]
                 functions_df = functions_df[functions_df['type'] == mode]
                 functions_list = functions_df['full_functionname'].unique()
                 selected_pipeline = st.selectbox("Function", list(functions_list))
             elif type_etl == "Database Procedures":
                 mode = "procedure"  # Force mode to procedure for this selection
-                functions_df = st.session_state.current_client.get_functions(include_all=True)
+                functions_df = st.session_state.db_metadatas["functions"]
                 functions_df = functions_df[functions_df['type'] == mode]
                 functions_list = functions_df['full_functionname'].unique()
                 selected_pipeline = st.selectbox("Procedure", list(functions_list))
@@ -915,7 +951,7 @@ class DBAnalyticsUI:
                 selected_pipeline = st.selectbox("Pipeline", list(st.session_state.pipelines.keys()))
             
             # Force mode to procedure for MSSQL since functions are not supported in this implementation
-            if st.session_state.current_client.engine == 'mssql':
+            if client.engine == 'mssql':
                 mode = "procedure"
 
         st.markdown("---")
@@ -1071,7 +1107,7 @@ class DBAnalyticsUI:
         st.header("Tables Management 📂")
         client = st.session_state.current_client
         
-        tables = client.get_tables(include_all=False, include_size=False)
+        tables = st.session_state.db_metadatas["tables"]
         click_on_preview = False
         
         try:
@@ -1206,6 +1242,7 @@ class DBAnalyticsUI:
                         else:
                             try:
                                 with st.spinner("Loading data into database..."):
+                                    print(f"Uploading data to {destination_table}...")
                                     db.utils.dataframe_to_db(
                                         dataframe=upload_file_preview,
                                         db_client=client,
@@ -1213,7 +1250,7 @@ class DBAnalyticsUI:
                                         if_exists="replace", ## Ensure table is truncated if needed
                                         chunksize=50000
                                     )
-                                print(f"Data insert to {destination_table}")
+                                print(f"Data insert to {destination_table}...")
                                 st.success(f"Data insert to {destination_table}", width='stretch')
                                 
                                 st.session_state.pop(cached_upload_df_key, None)
@@ -1232,12 +1269,8 @@ class DBAnalyticsUI:
         with col2:
             st.subheader("Export data from table")
             
-            try:
-                tables = client.get_tables(include_all=True, include_size=False)
-                available_tables = tables['full_tablename'].unique()
-            except Exception as e:
-                st.error(f"Failed to load database tables: {e}")
-                return
+            tables = client.get_tables(include_all=True, include_size=False)
+            available_tables = tables['full_tablename'].unique()
             
             selected_table = st.selectbox(
                 "Select the table to export", 
